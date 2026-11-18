@@ -1,6 +1,4 @@
 import model.*;
-import model.enums.HakAkses;
-import repository.ItemRepository;
 import repository.UserRepository;
 
 import javax.swing.*;
@@ -10,7 +8,10 @@ import java.awt.*;
 /**
  * LoginFrame:
  * Form Otentikasi dan Pemilihan Role Pengguna (US-001, US-002, US-003, US-010).
- * Mengarahkan pengguna ke Dashboard sesuai Role masing-masing.
+ * Mengarahkan pengguna ke Dashboard lengkap sesuai Role masing-masing:
+ * - Petugas (Bintang, Jepin, Fakhri) -> PetugasDashboardPanel
+ * - Mahasiswa (Pitya, Nadia)        -> MahasiswaDashboardPanel
+ * - Admin (Lukman)                  -> AdminDashboardPanel
  */
 public class LoginFrame extends JFrame {
 
@@ -20,9 +21,9 @@ public class LoginFrame extends JFrame {
     private final JComboBox<String> cmbQuickUser;
 
     public LoginFrame() {
-        setTitle("CampusFind — Login Multi-Role");
+        setTitle("CampusFind — Login Multi-Role Sistem");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(480, 420);
+        setSize(520, 440);
         setLocationRelativeTo(null);
         setResizable(false);
 
@@ -37,7 +38,7 @@ public class LoginFrame extends JFrame {
         lblTitle.setFont(new Font("SansSerif", Font.BOLD, 22));
         lblTitle.setForeground(new Color(41, 128, 185));
 
-        JLabel lblSubtitle = new JLabel("Sistem Informasi Barang Hilang & Temuan Kampus", SwingConstants.CENTER);
+        JLabel lblSubtitle = new JLabel("Sistem Smart Lost & Found Kampus Berbasis Java", SwingConstants.CENTER);
         lblSubtitle.setFont(new Font("SansSerif", Font.PLAIN, 12));
         lblSubtitle.setForeground(Color.GRAY);
 
@@ -54,7 +55,7 @@ public class LoginFrame extends JFrame {
         JLabel lblPass = new JLabel("Kata Sandi:");
         txtPassword = new JPasswordField("petugas123");
 
-        JLabel lblQuick = new JLabel("Pilih Akun Demo / Uji Coba Cepat:");
+        JLabel lblQuick = new JLabel("Pilih Akun Demo / Uji Coba Role:");
         cmbQuickUser = new JComboBox<>(new String[]{
                 "Bintang (Petugas) — bintang@campusfind.ac.id",
                 "Jepin (Petugas) — jepin@campusfind.ac.id",
@@ -118,7 +119,6 @@ public class LoginFrame extends JFrame {
             return;
         }
 
-        // Tampilkan notifikasi dashboard polimorfik (US-010)
         JOptionPane.showMessageDialog(this,
                 "Selamat datang, " + user.getNama() + "!\n" +
                         "Role: " + user.getRole() + "\n" +
@@ -139,67 +139,27 @@ public class LoginFrame extends JFrame {
     private void bukaDashboardPetugas(Petugas petugas) {
         JFrame frame = new JFrame("CampusFind — Modul Role Petugas (" + petugas.getNama() + ")");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(1200, 680);
+        frame.setSize(1220, 700);
         frame.setLocationRelativeTo(null);
         frame.add(new PetugasDashboardPanel(petugas.getNama()));
         frame.setVisible(true);
     }
 
     private void bukaDashboardAdmin(Admin admin) {
-        JFrame frame = new JFrame("CampusFind — Modul Role Admin (Lukman)");
+        JFrame frame = new JFrame("CampusFind — Modul Role Admin (" + admin.getNama() + ")");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(950, 550);
+        frame.setSize(1100, 680);
         frame.setLocationRelativeTo(null);
-
-        JPanel p = new JPanel(new BorderLayout(10, 10));
-        p.setBorder(new EmptyBorder(15, 15, 15, 15));
-
-        JLabel title = new JLabel("Layar Admin — Kelola & Lihat Semua Laporan Barang (US-003, US-007, US-008)");
-        title.setFont(new Font("SansSerif", Font.BOLD, 15));
-
-        JTextArea txt = new JTextArea();
-        txt.setEditable(false);
-        txt.setFont(new Font("Monospaced", Font.PLAIN, 12));
-
-        StringBuilder sb = new StringBuilder();
-        sb.append("=== DATA SEMUA BARANG VIA ItemRepository.findAll() ===\n\n");
-        for (Item item : ItemRepository.getInstance().findAll()) {
-            // Polimorfisme Item.tampilkanDetail()
-            sb.append(item.tampilkanDetail()).append("\n---------------------------------------------------------------\n");
-        }
-        txt.setText(sb.toString());
-
-        p.add(title, BorderLayout.NORTH);
-        p.add(new JScrollPane(txt), BorderLayout.CENTER);
-
-        frame.add(p);
+        frame.add(new AdminDashboardPanel(admin));
         frame.setVisible(true);
     }
 
     private void bukaDashboardMahasiswa(Mahasiswa mhs) {
-        JFrame frame = new JFrame("CampusFind — Modul Mahasiswa (" + mhs.getNama() + ")");
+        JFrame frame = new JFrame("CampusFind — Modul Role Mahasiswa (" + mhs.getNama() + ")");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(750, 450);
+        frame.setSize(1100, 680);
         frame.setLocationRelativeTo(null);
-
-        JPanel p = new JPanel(new BorderLayout(10, 10));
-        p.setBorder(new EmptyBorder(20, 20, 20, 20));
-
-        JLabel lbl = new JLabel("Dashboard Mahasiswa (" + mhs.getNama() + " - NIM: " + mhs.getNim() + ")");
-        lbl.setFont(new Font("SansSerif", Font.BOLD, 16));
-
-        JTextArea area = new JTextArea();
-        area.setEditable(false);
-        area.setText("Hak Akses Mahasiswa:\n" +
-                "- BUAT_LAPORAN (US-009)\n" +
-                "- LIHAT_LAPORAN_SENDIRI (US-010)\n" +
-                "- KLAIM_BARANG (US-019)\n\n" +
-                "Bagian formulir pelaporan dan tracking mahasiswa dipegang oleh Pitya dan Nadia.");
-
-        p.add(lbl, BorderLayout.NORTH);
-        p.add(new JScrollPane(area), BorderLayout.CENTER);
-
-        frame.add(p);
+        frame.add(new MahasiswaDashboardPanel(mhs));
         frame.setVisible(true);
     }
 }

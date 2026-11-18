@@ -32,14 +32,14 @@ public class PetugasConsoleUI {
 
         System.out.println("===============================================================");
         System.out.println("   CAMPUSFIND — SISTEM INFORMASI BARANG HILANG & TEMUAN        ");
-        System.out.println("           MODUL ROLE PETUGAS (BAGIAN BINTANG)                 ");
+        System.out.println("    MODUL LENGKAP KELOMPOK 4 (BINTANG, JEPIN, FAKHRI, DLL)     ");
         System.out.println("===============================================================");
-        System.out.println("Aktif sebagai Petugas: " + namaPetugas + "\n");
+        System.out.println("Petugas Aktif: " + namaPetugas + "\n");
 
         boolean running = true;
         while (running) {
             printMenu();
-            System.out.print("Pilih menu [0-10]: ");
+            System.out.print("Pilih menu [0-12]: ");
             String input = scanner.nextLine().trim();
 
             switch (input) {
@@ -73,6 +73,12 @@ public class PetugasConsoleUI {
                 case "10":
                     menuCekHakAkses();
                     break;
+                case "11":
+                    menuGantiPetugasAktif();
+                    break;
+                case "12":
+                    menuJalankanModulSinkronisasiLaporan();
+                    break;
                 case "0":
                     DatabaseManager.simpanKeFile();
                     System.out.println("\n[INFO] Data disimpan ke database lokal. Terima kasih!");
@@ -90,7 +96,7 @@ public class PetugasConsoleUI {
         int countKlaim = klaimRepo.findByStatus(StatusKlaim.DIAJUKAN).size();
 
         System.out.println("---------------------------------------------------------------");
-        System.out.println("KPI DASHBOARD: [Verifikasi Pending: " + countVerif + "] | [Klaim Pending: " + countKlaim + "]");
+        System.out.println("DASHBOARD PETUGAS: " + namaPetugas + " | [Verifikasi: " + countVerif + "] | [Klaim: " + countKlaim + "]");
         System.out.println("---------------------------------------------------------------");
         System.out.println("1. Tampilkan Antrean Laporan Baru (DILAPORKAN)");
         System.out.println("2. Verifikasi Laporan Masuk (Terima / Tolak Wajib Alasan) (US-011)");
@@ -102,8 +108,29 @@ public class PetugasConsoleUI {
         System.out.println("8. Formulir Serah Terima & Penguncian Data (US-021)");
         System.out.println("9. Lihat Detail Lengkap Semua Barang (Polimorfisme US-008)");
         System.out.println("10. Cek Hierarki Role & Hak Akses Pengguna (US-001, US-003)");
+        System.out.println("11. Ganti Petugas Aktif (Bintang / Jepin / Fakhri)");
+        System.out.println("12. Simulasi Ujian: Jalankan Class Laporan (Modul Sinkronisasi)");
         System.out.println("0. Simpan & Keluar");
         System.out.println("---------------------------------------------------------------");
+    }
+
+    private void menuGantiPetugasAktif() {
+        System.out.println("\nPilih Petugas yang bertugas:");
+        System.out.println("1. Bintang");
+        System.out.println("2. Jepin");
+        System.out.println("3. Fakhri");
+        System.out.print("Pilih [1-3]: ");
+        String p = scanner.nextLine().trim();
+        if ("1".equals(p)) namaPetugas = "Bintang";
+        else if ("2".equals(p)) namaPetugas = "Jepin";
+        else if ("3".equals(p)) namaPetugas = "Fakhri";
+        System.out.println("[OK] Petugas aktif saat ini diubah menjadi: " + namaPetugas);
+    }
+
+    private void menuJalankanModulSinkronisasiLaporan() {
+        System.out.println("\n=== MENJALANKAN MODUL SINKRONISASI KELOMPOK 4 (Laporan.main) ===");
+        Laporan.main(new String[]{});
+        System.out.println("=== SELESAI MENJALANKAN SINKRONISASI ===\n");
     }
 
     private void menuLihatAntreanLaporan() {
@@ -135,7 +162,7 @@ public class PetugasConsoleUI {
 
         Item item = opt.get();
         System.out.println("\nDetail Laporan Dipilih:\n" + item.tampilkanDetail());
-        System.out.println("Aksi Petugas:");
+        System.out.println("Aksi Petugas (" + namaPetugas + "):");
         System.out.println("1. Terima Laporan (Ubah status -> DIVERIFIKASI)");
         System.out.println("2. Tolak Laporan (Wajib mengisi alasan tertulis)");
         System.out.print("Pilih aksi [1/2]: ");
@@ -297,7 +324,7 @@ public class PetugasConsoleUI {
         }
 
         Klaim klaim = optK.get();
-        System.out.println("Aksi Petugas: [1] Setujui Klaim (Status -> DIKLAIM) | [2] Tolak Klaim");
+        System.out.println("Aksi Petugas (" + namaPetugas + "): [1] Setujui Klaim (Status -> DIKLAIM) | [2] Tolak Klaim");
         System.out.print("Pilih [1/2]: ");
         String aks = scanner.nextLine().trim();
 
@@ -371,7 +398,6 @@ public class PetugasConsoleUI {
     private void menuPolimorfismeDetail() {
         System.out.println("\n=== POLIMORFISME: TAMPILKAN DETAIL SEMUA BARANG (US-008) ===");
         for (Item item : itemRepo.findAll()) {
-            // Pemanggilan polimorfik: Item.tampilkanDetail()
             System.out.println(item.tampilkanDetail());
             System.out.println("===============================================================");
         }
