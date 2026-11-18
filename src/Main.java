@@ -1,29 +1,39 @@
-import javax.swing.JFrame;
+import repository.DatabaseManager;
+
 import javax.swing.SwingUtilities;
+import java.awt.GraphicsEnvironment;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-//void main() {
-//    //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-//    // to see how IntelliJ IDEA suggests fixing it.
-//    IO.println(String.format("Hello and welcome!"));
-//
-//    for (int i = 1; i <= 5; i++) {
-//        //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-//        // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-//        IO.println("i = " + i);
-//    }
-//}
-
+/**
+ * Main Entry Point - CampusFind
+ * Mendukung 2 Mode Eksekusi:
+ * 1. GUI Mode (Desktop Swing) jika ada server X11 / Layar Desktop (default pada IntelliJ / Windows / Linux Desktop).
+ * 2. CLI Console Mode jika dijalankan di Terminal Headless (WSL, SSH) agar tidak terjadi HeadlessException.
+ */
 public class Main {
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            JFrame frame = new JFrame("CampusFind - Dashboard Petugas");
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            frame.setSize(1100, 620);
-            frame.setLocationRelativeTo(null);
-            frame.add(new PetugasDashboardPanel("Fakhry"));
-            frame.setVisible(true);
-        });
+        // Muat data tersimpan dari database lokal
+        DatabaseManager.muatDariFile();
+
+        boolean forceCli = false;
+        if (args.length > 0 && ("--cli".equalsIgnoreCase(args[0]) || "-c".equalsIgnoreCase(args[0]))) {
+            forceCli = true;
+        }
+
+        // Cek apakah lingkungan headless (tidak ada X11 display / terminal Linux murni)
+        if (forceCli || GraphicsEnvironment.isHeadless()) {
+            System.out.println("===============================================================");
+            System.out.println("[INFO] Berjalan dalam Mode Console CLI (Headless Environment).");
+            System.out.println("Tips GUI: Jalankan dari IntelliJ IDEA / VS Code Desktop atau set DISPLAY=:0");
+            System.out.println("===============================================================\n");
+
+            PetugasConsoleUI consoleUI = new PetugasConsoleUI();
+            consoleUI.start();
+        } else {
+            // Jalankan GUI Swing (Desktop Mode)
+            SwingUtilities.invokeLater(() -> {
+                LoginFrame login = new LoginFrame();
+                login.setVisible(true);
+            });
+        }
     }
 }

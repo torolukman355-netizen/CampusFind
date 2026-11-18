@@ -1,0 +1,5 @@
+ITEM;T-101;TEMUAN;iPhone 13 Hitam;ELEKTRONIK;Gedung A Lt. 2;Budi (Mhs);DILAPORKAN;-;-;false;Apple;IMEI-8839201
+ITEM;H-102;HILANG;Dompet Kulit Coklat;NON_ELEKTRONIK;Kantin Pusat;Siti (Mhs);DILAPORKAN;-;-;false;Kulit Asli;Ada inisial S & KTP a.n Siti
+ITEM;T-055;TEMUAN;Tumbler Corkcicle Biru;NON_ELEKTRONIK;Perpustakaan Lt. 1;Jepin (Petugas);DIVERIFIKASI;Ruang C - 101;QR-T-055;false;Stainless Steel;Stiker nama Andi di bawah botol
+ITEM;H-012;HILANG;Flashdisk Sandisk 32GB;ELEKTRONIK;Lab Komputer 1;Rama (Mhs);DIVERIFIKASI;-;-;false;Sandisk;SN-FD9921
+ITEM;T-034;TEMUAN;USB Sandisk Merah Hitam;ELEKTRONIK;Lab Komputer 1;Agnes (Mhs);DIVERIFIKASI;Ruang C - 106;QR-T-034;false;Sandisk;SN-FD9921
