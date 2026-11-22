@@ -1,9 +1,9 @@
-# Modul Fitya (Maven & Data)
-campusfind/target/
-campusfind/data/
-
-# IDE & Build artifacts
 out/
 .idea/
+.vscode/
 *.iml
 .DS_Store
+
+target/
+data/
+.m2-repo/
