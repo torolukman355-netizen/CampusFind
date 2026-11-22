@@ -17,7 +17,9 @@ import com.campusfind.service.KandidatService;
 import com.campusfind.service.KlaimService;
 import com.campusfind.service.MatchingStrategy;
 import com.campusfind.service.NotificationService;
+import com.campusfind.service.PetugasService;
 import com.campusfind.service.PosService;
+import com.campusfind.service.QRCodeService;
 import com.campusfind.service.TokenOverlapStrategy;
 import com.campusfind.service.WeightedAttributeStrategy;
 import com.campusfind.ui.pages.AppFrame;
@@ -28,22 +30,17 @@ import java.time.Clock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/**
- * Titik masuk utama aplikasi desktop "CampusFind" (Java Swing).
- */
 public class App {
 
     private static final Logger LOG = Logger.getLogger(App.class.getName());
 
     public static void main(String[] args) {
-        // Atur look and feel sistem jika tersedia
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception e) {
             LOG.log(Level.WARNING, "Tidak dapat mengatur System Look & Feel", e);
         }
 
-        // Inisialisasi arsitektur di luar EDT atau sebelum window tampil
         FileDataStore dataStore = new FileDataStore();
         ItemRepository itemRepository = new FileItemRepository(dataStore);
         KlaimRepository klaimRepository = new FileKlaimRepository(dataStore);
@@ -64,6 +61,9 @@ public class App {
         );
         PosService posService = new PosService(posRepository);
         NotificationService notificationService = new NotificationService(notificationRepository);
+        QRCodeService qrCodeService = new QRCodeService();
+        PetugasService petugasService = new PetugasService(itemRepository, posRepository, notificationService, qrCodeService);
+
         CandidateMatchingStrategy candidateMatchingStrategy = new WeightedAttributeStrategy();
         KandidatService kandidatService = new KandidatService(itemRepository, candidateMatchingStrategy);
         KandidatNotifier kandidatNotifier = new KandidatNotifier(
@@ -75,14 +75,16 @@ public class App {
         itemService.addItemCreatedListener(kandidatNotifier);
         AppSession appSession = new AppSession();
 
-        // Seluruh pembuatan dan manipulasi UI dijalankan di Event Dispatch Thread (EDT)
         SwingUtilities.invokeLater(() -> {
             AppFrame frame = new AppFrame(
                     itemService,
                     klaimService,
+                    klaimRepository,
                     posService,
                     notificationService,
                     kandidatService,
+                    petugasService,
+                    qrCodeService,
                     appSession
             );
             frame.setVisible(true);

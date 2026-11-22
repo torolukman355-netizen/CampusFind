@@ -1,11 +1,14 @@
 package com.campusfind.ui.pages;
 
+import com.campusfind.repository.KlaimRepository;
 import com.campusfind.service.AppSession;
 import com.campusfind.service.ItemService;
 import com.campusfind.service.KandidatService;
 import com.campusfind.service.KlaimService;
 import com.campusfind.service.NotificationService;
+import com.campusfind.service.PetugasService;
 import com.campusfind.service.PosService;
+import com.campusfind.service.QRCodeService;
 import com.campusfind.ui.components.NavBar;
 import com.campusfind.ui.theme.Theme;
 
@@ -22,9 +25,12 @@ public class AppFrame extends JFrame {
 
     public AppFrame(ItemService itemService,
                     KlaimService klaimService,
+                    KlaimRepository klaimRepository,
                     PosService posService,
                     NotificationService notificationService,
                     KandidatService kandidatService,
+                    PetugasService petugasService,
+                    QRCodeService qrCodeService,
                     AppSession appSession) {
         super("CampusFind — Layanan Rekonsiliasi & Kehilangan Kampus");
 
@@ -37,9 +43,12 @@ public class AppFrame extends JFrame {
                 this,
                 itemService,
                 klaimService,
+                klaimRepository,
                 posService,
                 notificationService,
                 kandidatService,
+                petugasService,
+                qrCodeService,
                 appSession
         );
 
@@ -54,7 +63,6 @@ public class AppFrame extends JFrame {
         add(navBar, BorderLayout.NORTH);
         add(contentHolder, BorderLayout.CENTER);
 
-        // Start at TemuanPage
         controller.navigateToTemuan();
     }
 
@@ -62,8 +70,17 @@ public class AppFrame extends JFrame {
                     KlaimService klaimService,
                     PosService posService,
                     NotificationService notificationService,
+                    KandidatService kandidatService,
                     AppSession appSession) {
-        this(itemService, klaimService, posService, notificationService, null, appSession);
+        this(itemService, klaimService, null, posService, notificationService, kandidatService, null, null, appSession);
+    }
+
+    public AppFrame(ItemService itemService,
+                    KlaimService klaimService,
+                    PosService posService,
+                    NotificationService notificationService,
+                    AppSession appSession) {
+        this(itemService, klaimService, null, posService, notificationService, null, null, null, appSession);
     }
 
     private void setView(JComponent component) {

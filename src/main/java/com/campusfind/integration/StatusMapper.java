@@ -60,9 +60,11 @@ public final class StatusMapper {
             return "DIVERIFIKASI";
         }
         return switch (status) {
-            case TERSEDIA, DICARI -> "DIVERIFIKASI";
-            case DALAM_PROSES_KLAIM -> "DIKLAIM";
-            case DISERAHKAN -> "DIKEMBALIKAN";
+            case DILAPORKAN -> "DILAPORKAN";
+            case DIVERIFIKASI, TERSEDIA, DICARI -> "DIVERIFIKASI";
+            case COCOK -> "COCOK";
+            case DALAM_PROSES_KLAIM, DIKLAIM -> "DIKLAIM";
+            case DISERAHKAN, DIKEMBALIKAN -> "DIKEMBALIKAN";
         };
-    }
+    };
 }

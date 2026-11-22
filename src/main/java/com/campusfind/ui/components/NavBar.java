@@ -59,7 +59,6 @@ public class NavBar extends JPanel {
     }
 
     private void initComponents() {
-        // 1. Left: Brand Logo "CampusFind."
         leftBrandPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 16));
         leftBrandPanel.setOpaque(false);
 
@@ -82,7 +81,6 @@ public class NavBar extends JPanel {
         leftBrandPanel.add(dotLabel);
         add(leftBrandPanel, BorderLayout.WEST);
 
-        // 2. Center: Regular Navigation Links (visible when >= BREAKPOINT_NAV_COLLAPSE)
         centerLinksPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 22, 20));
         centerLinksPanel.setOpaque(false);
 
@@ -94,11 +92,9 @@ public class NavBar extends JPanel {
 
         add(centerLinksPanel, BorderLayout.CENTER);
 
-        // 3. Right: Hamburger Button (for small screen) + User Profile Button
         rightActionsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 17));
         rightActionsPanel.setOpaque(false);
 
-        // Hamburger Button
         hamburgerBtn = new JButton(new HamburgerIcon(22, Theme.TEXT_PRIMARY));
         hamburgerBtn.setPreferredSize(new Dimension(36, 32));
         hamburgerBtn.setContentAreaFilled(false);
@@ -111,7 +107,6 @@ public class NavBar extends JPanel {
         hamburgerBtn.addActionListener(e -> showHamburgerMenu(hamburgerBtn));
         rightActionsPanel.add(hamburgerBtn);
 
-        // User Profile Button (30x30 circle with white user icon)
         userBtn = new JButton() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -122,7 +117,6 @@ public class NavBar extends JPanel {
                 UserIcon icon = new UserIcon(16, Color.WHITE);
                 icon.paintIcon(this, g2, 7, 7);
 
-                // Indicator titik badge notifikasi belum dibaca
                 if (unreadNotificationsCount > 0) {
                     g2.setColor(new Color(220, 38, 38));
                     g2.fillOval(getWidth() - 9, 1, 8, 8);
@@ -174,6 +168,8 @@ public class NavBar extends JPanel {
         popup.add(createMenuItem("Klaim Saya", () -> controller.showKlaimSaya()));
         String notifText = "Notifikasi (" + unreadNotificationsCount + ")";
         popup.add(createMenuItem(notifText, () -> controller.showNotifikasi()));
+        popup.add(createMenuItem("Dashboard Petugas", () -> controller.navigateToPetugas()));
+        popup.add(createMenuItem("Ganti Akun / Logout", () -> controller.logout()));
 
         showAlignedPopup(popup, source);
     }
@@ -193,19 +189,21 @@ public class NavBar extends JPanel {
         JMenuItem notifItem = createMenuItem(notifText, () -> controller.showNotifikasi());
         menu.add(notifItem);
 
+        menu.addSeparator();
+        menu.add(createMenuItem("Dashboard Petugas", () -> controller.navigateToPetugas()));
+        menu.add(createMenuItem("Ganti Akun / Logout", () -> controller.logout()));
+
         showAlignedPopup(menu, source);
     }
 
     private void showAlignedPopup(JPopupMenu popup, JButton source) {
         Dimension pref = popup.getPreferredSize();
-        int popupWidth = Math.max(200, pref.width);
+        int popupWidth = Math.max(210, pref.width);
         popup.setPreferredSize(new Dimension(popupWidth, pref.height));
 
-        // Align right edge of popup with right edge of button
         int x = source.getWidth() - popupWidth;
         int y = source.getHeight() + 4;
 
-        // Ensure popup does not overflow window boundary
         Window window = SwingUtilities.getWindowAncestor(source);
         if (window != null && source.isShowing()) {
             Point sourceLocation = source.getLocationOnScreen();
@@ -228,7 +226,7 @@ public class NavBar extends JPanel {
         item.setFont(Fonts.sans(13.5f, Font.PLAIN));
         item.setForeground(Theme.TEXT_PRIMARY);
         item.setBackground(Theme.INPUT_BACKGROUND);
-        item.setHorizontalAlignment(SwingConstants.CENTER); // Centered text
+        item.setHorizontalAlignment(SwingConstants.CENTER);
         item.setBorder(javax.swing.BorderFactory.createEmptyBorder(9, 20, 9, 20));
         item.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         item.addActionListener(e -> action.run());
@@ -273,7 +271,6 @@ public class NavBar extends JPanel {
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        // Bottom border line 1px #DAD6D0
         g.setColor(Theme.NAVBAR_BORDER);
         g.drawLine(0, getHeight() - 1, getWidth(), getHeight() - 1);
     }
