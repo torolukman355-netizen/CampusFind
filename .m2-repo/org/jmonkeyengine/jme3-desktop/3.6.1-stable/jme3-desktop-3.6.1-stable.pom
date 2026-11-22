@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <!-- This module was also published with a richer model, Gradle metadata,  -->
+  <!-- which should be used instead. Do not delete the following line which  -->
+  <!-- is to indicate to Gradle or any Gradle module metadata file consumer  -->
+  <!-- that they should prefer consuming it instead. -->
+  <!-- do_not_remove: published-with-gradle-metadata -->
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.jmonkeyengine</groupId>
+  <artifactId>jme3-desktop</artifactId>
+  <version>3.6.1-stable</version>
+  <name>jMonkeyEngine</name>
+  <description>jMonkeyEngine is a 3-D game engine for adventurous Java developers</description>
+  <url>http://jmonkeyengine.org</url>
+  <inceptionYear>2009</inceptionYear>
+  <licenses>
+    <license>
+      <name>New BSD (3-clause) License</name>
+      <url>http://opensource.org/licenses/BSD-3-Clause</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <developers>
+    <developer>
+      <id>jMonkeyEngine</id>
+      <name>jMonkeyEngine Team</name>
+    </developer>
+  </developers>
+  <scm>
+    <connection>scm:git:git://github.com/jMonkeyEngine/jmonkeyengine.git</connection>
+    <developerConnection>scm:git:git@github.com:jMonkeyEngine/jmonkeyengine.git</developerConnection>
+    <url>https://github.com/jMonkeyEngine/jmonkeyengine</url>
+  </scm>
+  <dependencies>
+    <dependency>
+      <groupId>org.jmonkeyengine</groupId>
+      <artifactId>jme3-core</artifactId>
+      <version>3.6.1-stable</version>
+      <scope>compile</scope>
+    </dependency>
+  </dependencies>
+</project>
