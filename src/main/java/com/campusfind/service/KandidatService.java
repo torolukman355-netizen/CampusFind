@@ -19,6 +19,7 @@ import java.util.logging.Logger;
  */
 public class KandidatService {
 
+    @SuppressWarnings("unused")
     private static final Logger LOG = Logger.getLogger(KandidatService.class.getName());
 
     private final ItemRepository itemRepository;

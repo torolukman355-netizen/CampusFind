@@ -1,8 +1,6 @@
 package com.campusfind.model;
 
-import java.io.Serializable;
-
-public enum StatusKlaim implements Serializable {
+public enum StatusKlaim {
     DIAJUKAN("Diajukan"),
     DISETUJUI("Disetujui"),
     DITOLAK("Ditolak"),
@@ -15,8 +13,6 @@ public enum StatusKlaim implements Serializable {
      */
     @Deprecated
     MENUNGGU_VERIFIKASI("Diajukan");
-
-    private static final long serialVersionUID = 1L;
 
     private final String label;
 

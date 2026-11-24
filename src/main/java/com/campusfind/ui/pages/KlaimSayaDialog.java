@@ -294,6 +294,7 @@ public class KlaimSayaDialog extends JDialog {
         worker.execute();
     }
 
+    @SuppressWarnings("deprecation")
     private void updateBatalkanButtonState() {
         int selectedRow = table.getSelectedRow();
         if (selectedRow < 0 || selectedRow >= currentRows.size()) {
@@ -307,6 +308,7 @@ public class KlaimSayaDialog extends JDialog {
         batalkanBtn.setEnabled(bisaBatal);
     }
 
+    @SuppressWarnings("deprecation")
     private void batalkanTerpilih() {
         int row = table.getSelectedRow();
         if (row < 0 || row >= currentRows.size()) {
@@ -376,6 +378,7 @@ public class KlaimSayaDialog extends JDialog {
      */
     private static class StatusBadgeRenderer extends DefaultTableCellRenderer {
         @Override
+        @SuppressWarnings("deprecation")
         public Component getTableCellRendererComponent(JTable table, Object value,
                                                        boolean isSelected, boolean hasFocus,
                                                        int row, int column) {

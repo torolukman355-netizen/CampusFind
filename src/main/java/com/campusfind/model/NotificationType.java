@@ -1,17 +1,13 @@
 package com.campusfind.model;
 
-import java.io.Serializable;
-
 /**
  * Tipe klasifikasi notifikasi sistem CampusFind.
  */
-public enum NotificationType implements Serializable {
+public enum NotificationType {
     KLAIM_DITERIMA("Klaim Diterima"),
     KLAIM_DISETUJUI("Klaim Disetujui"),
     KLAIM_DITOLAK("Klaim Ditolak"),
     KANDIDAT_COCOK("Kandidat Cocok");
-
-    private static final long serialVersionUID = 1L;
 
     private final String label;
 

@@ -44,6 +44,11 @@ public class KlaimService {
     private final MatchingStrategy matchingStrategy;
     private final Clock clock;
 
+    @SuppressWarnings("deprecation")
+    private static boolean isStatusDiajukan(StatusKlaim status) {
+        return status == StatusKlaim.DIAJUKAN || status == StatusKlaim.MENUNGGU_VERIFIKASI;
+    }
+
     public KlaimService(KlaimRepository klaimRepository,
                         ItemRepository itemRepository,
                         PosRepository posRepository,
@@ -106,8 +111,7 @@ public class KlaimService {
         // 3. Double-check: tidak ada klaim aktif untuk item ini
         boolean adaKlaimAktif = klaimRepository.findAll().stream()
                 .anyMatch(k -> k.getItemId().equals(itemId)
-                        && (k.getStatus() == StatusKlaim.DIAJUKAN
-                            || k.getStatus() == StatusKlaim.MENUNGGU_VERIFIKASI
+                        && (isStatusDiajukan(k.getStatus())
                             || k.getStatus() == StatusKlaim.DISETUJUI));
         if (adaKlaimAktif) {
             throw new KlaimGandaException("Barang ini sedang dalam proses klaim aktif.");
@@ -216,7 +220,7 @@ public class KlaimService {
         Klaim klaim = klaimRepository.findById(klaimId).orElseThrow(() ->
                 new IllegalArgumentException("Klaim tidak ditemukan."));
 
-        if (klaim.getStatus() != StatusKlaim.DIAJUKAN && klaim.getStatus() != StatusKlaim.MENUNGGU_VERIFIKASI) {
+        if (!isStatusDiajukan(klaim.getStatus())) {
             throw new IllegalStateException("Hanya klaim dengan status Diajukan yang dapat disetujui.");
         }
 
@@ -225,13 +229,17 @@ public class KlaimService {
         klaimRepository.save(klaim);
 
         Item item = itemRepository.findById(klaim.getItemId()).orElse(null);
+        if (item != null) {
+            item.setStatus(StatusItem.DALAM_PROSES_KLAIM);
+            itemRepository.save(item);
+        }
 
         // Otomatis tolak klaim aktif lain pada item yang sama
         String alasanAutoTolak = "Otomatis: klaim lain untuk barang ini telah disetujui";
         List<Klaim> klaimLain = klaimRepository.findAll().stream()
                 .filter(k -> k.getItemId().equals(klaim.getItemId())
                         && !k.getId().equals(klaimId)
-                        && (k.getStatus() == StatusKlaim.DIAJUKAN || k.getStatus() == StatusKlaim.MENUNGGU_VERIFIKASI))
+                        && isStatusDiajukan(k.getStatus()))
                 .toList();
 
         for (Klaim lain : klaimLain) {
@@ -283,7 +291,7 @@ public class KlaimService {
         Klaim klaim = klaimRepository.findById(klaimId).orElseThrow(() ->
                 new IllegalArgumentException("Klaim tidak ditemukan."));
 
-        if (klaim.getStatus() != StatusKlaim.DIAJUKAN && klaim.getStatus() != StatusKlaim.MENUNGGU_VERIFIKASI) {
+        if (!isStatusDiajukan(klaim.getStatus())) {
             throw new IllegalStateException("Hanya klaim dengan status Diajukan yang dapat ditolak.");
         }
 
@@ -321,7 +329,7 @@ public class KlaimService {
         Klaim klaim = klaimRepository.findById(klaimId).orElseThrow(() ->
                 new IllegalArgumentException("Klaim tidak ditemukan."));
 
-        if (klaim.getStatus() != StatusKlaim.DIAJUKAN && klaim.getStatus() != StatusKlaim.MENUNGGU_VERIFIKASI) {
+        if (!isStatusDiajukan(klaim.getStatus())) {
             throw new IllegalStateException("Hanya klaim dengan status Diajukan yang dapat dibatalkan.");
         }
 

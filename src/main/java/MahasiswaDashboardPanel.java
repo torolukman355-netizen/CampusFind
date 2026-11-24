@@ -17,7 +17,6 @@ public class MahasiswaDashboardPanel extends JPanel {
     private static final Color BG_MAIN = new Color(244, 246, 249);
     private static final Color BG_CARD = Color.WHITE;
     private static final Color PRIMARY = new Color(37, 99, 235);
-    private static final Color PRIMARY_DARK = new Color(30, 64, 175);
     private static final Color TEXT_DARK = new Color(30, 41, 59);
     private static final Color TEXT_MUTED = new Color(100, 116, 139);
     private static final Color BORDER_LIGHT = new Color(226, 232, 240);

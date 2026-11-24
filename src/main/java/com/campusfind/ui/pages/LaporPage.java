@@ -69,7 +69,6 @@ public class LaporPage extends ResponsivePage {
     private PlaceholderTextField merekField;
     private PlaceholderTextField nomorSeriField;
     private PlaceholderTextField warnaField;
-    private PlaceholderTextField bahanField;
 
     private PlaceholderTextArea deskripsiArea;
     private PlaceholderTextField lokasiField;

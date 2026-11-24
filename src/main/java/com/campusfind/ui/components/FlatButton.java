@@ -3,11 +3,9 @@ package com.campusfind.ui.components;
 import com.campusfind.ui.theme.Fonts;
 import com.campusfind.ui.theme.Theme;
 
-import javax.swing.Action;
 import javax.swing.Icon;
 import javax.swing.JButton;
 import java.awt.Cursor;
-import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;

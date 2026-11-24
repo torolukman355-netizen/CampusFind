@@ -9,7 +9,6 @@ import com.campusfind.ui.theme.Theme;
 
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
-import javax.swing.JPanel;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
@@ -17,6 +16,7 @@ import java.awt.Font;
 
 public class BantuanPage extends ResponsivePage {
 
+    @SuppressWarnings("unused")
     private final NavigationController controller;
     private final PageHeader header;
     private final RoundedPanel card1;

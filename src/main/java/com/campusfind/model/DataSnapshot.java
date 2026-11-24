@@ -30,6 +30,7 @@ public class DataSnapshot implements Serializable {
         this.klaimAktifIndex = new HashMap<>();
     }
 
+    @SuppressWarnings("deprecation")
     public void buildIndex() {
         klaimAktifIndex = new HashMap<>();
         for (Map.Entry<String, Klaim> entry : klaim.entrySet()) {

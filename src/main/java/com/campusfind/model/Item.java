@@ -110,6 +110,23 @@ public abstract class Item implements Serializable {
         this.posId = posId;
     }
 
+    /**
+     * US-008: Method polimorfik untuk menampilkan rincian lengkap barang
+     * sesuai tipe spesifiknya (BarangElektronik / BarangNonElektronik).
+     *
+     * @return representasi string rincian objek barang
+     */
+    public abstract String tampilkanDetail();
+
+    /**
+     * Memeriksa apakah data barang sudah terkunci permanen setelah diserahterimakan (US-021).
+     *
+     * @return true jika status adalah DIKEMBALIKAN atau DISERAHKAN
+     */
+    public boolean isTerkunci() {
+        return status == StatusItem.DIKEMBALIKAN || status == StatusItem.DISERAHKAN;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

@@ -1,12 +1,23 @@
 package com.campusfind.model;
 
-import java.io.Serializable;
 
-public class Mahasiswa extends User implements Serializable {
+/**
+ * Role Mahasiswa (Pitya, Nadia).
+ * Pengguna yang melaporkan kehilangan/penemuan, melihat kandidat cocok, dan mengajukan klaim.
+ */
+public class Mahasiswa extends User {
 
     private static final long serialVersionUID = 1L;
 
     public Mahasiswa(String nama, String nim) {
         super(nama, nim);
+        daftarHakAkses.add(HakAkses.BUAT_LAPORAN);
+        daftarHakAkses.add(HakAkses.KLAIM_BARANG);
+        daftarHakAkses.add(HakAkses.LIHAT_LAPORAN_SENDIRI);
+    }
+
+    @Override
+    public String tampilDashboard() {
+        return "Dashboard Mahasiswa: Laporan Saya, Pelacakan Status, Kandidat Cocok, & Notifikasi.";
     }
 }

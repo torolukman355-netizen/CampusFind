@@ -3,7 +3,6 @@ package com.campusfind.service;
 import com.campusfind.model.Item;
 import com.campusfind.model.JenisLaporan;
 import com.campusfind.model.MatchResult;
-import com.campusfind.model.Notification;
 import com.campusfind.model.NotificationType;
 import com.campusfind.model.StatusItem;
 import com.campusfind.repository.ItemRepository;

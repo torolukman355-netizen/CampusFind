@@ -29,6 +29,7 @@ class SchemaMigrationTest {
 
     @Test
     @DisplayName("File data versi 1 dengan status MENUNGGU_VERIFIKASI berhasil dimigrasi ke DIAJUKAN dan membuat .bak")
+    @SuppressWarnings("deprecation")
     void testMigrasiSchemaVersion1Ke2(@TempDir Path tempDir) throws IOException {
         // 1. Buat data snapshot versi lama (schemaVersion 1)
         DataSnapshot oldSnapshot = new DataSnapshot();
