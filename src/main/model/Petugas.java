@@ -28,6 +28,14 @@ public class Petugas extends User {
 
     public Petugas(String nama, String nip, String email, String passwordHash, boolean aktif) {
         super(nama, nip, email, passwordHash, aktif);
+        daftarHakAkses.add(HakAkses.VERIFIKASI_LAPORAN);
+        daftarHakAkses.add(HakAkses.KONTROL_STATUS);
+        daftarHakAkses.add(HakAkses.KELOLA_LOKASI_SIMPAN);
+        daftarHakAkses.add(HakAkses.KONFIRMASI_MATCHING);
+        daftarHakAkses.add(HakAkses.KELOLA_QR_CODE);
+        daftarHakAkses.add(HakAkses.KEPUTUSAN_KLAIM);
+        daftarHakAkses.add(HakAkses.SERAH_TERIMA_BARANG);
+        daftarHakAkses.add(HakAkses.LIHAT_SEMUA_BARANG);
     }
 
     @Override

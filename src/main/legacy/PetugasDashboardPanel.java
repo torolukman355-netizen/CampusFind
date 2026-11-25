@@ -1,20 +1,5 @@
-<<<<<<< HEAD:src/main/legacy/PetugasDashboardPanel.java
 package com.campusfind.legacy;
 
-import javax.imageio.ImageIO;
-import javax.swing.*;
-import javax.swing.border.*;
-import javax.swing.table.DefaultTableModel;
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-=======
 import com.campusfind.repository.FileDataStore;
 import com.campusfind.repository.FileItemRepository;
 import com.campusfind.repository.FileKlaimRepository;
@@ -36,7 +21,6 @@ import com.campusfind.service.QRCodeService;
 import com.campusfind.service.TokenOverlapStrategy;
 import com.campusfind.service.WeightedAttributeStrategy;
 import com.campusfind.ui.pages.PetugasPage;
->>>>>>> ca2e27ff81bd0eaf0f0496ef3f356f4006abcbb8:src/main/java/PetugasDashboardPanel.java
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;

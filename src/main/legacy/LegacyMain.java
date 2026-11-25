@@ -5,29 +5,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import java.awt.GraphicsEnvironment;
 
-<<<<<<< HEAD:src/main/legacy/LegacyMain.java
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-//void main() {
-//    //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-//    // to see how IntelliJ IDEA suggests fixing it.
-//    IO.println(String.format("Hello and welcome!"));
-//
-//    for (int i = 1; i <= 5; i++) {
-//        //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-//        // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-//        IO.println("i = " + i);
-//    }
-//}
-
 public class LegacyMain {
-=======
-/**
- * Main Entry Point - CampusFind Petugas Dashboard (Bintang)
- */
-public class Main {
-
->>>>>>> ca2e27ff81bd0eaf0f0496ef3f356f4006abcbb8:src/main/java/Main.java
     public static void main(String[] args) {
         // Tangani pengecekan display dan Headless secara aman dari AWTError
         try {

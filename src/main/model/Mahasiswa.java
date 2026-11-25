@@ -23,6 +23,9 @@ public class Mahasiswa extends User {
 
     public Mahasiswa(String nama, String nim, String email, String passwordHash, boolean aktif) {
         super(nama, nim, email, passwordHash, aktif);
+        daftarHakAkses.add(HakAkses.BUAT_LAPORAN);
+        daftarHakAkses.add(HakAkses.KLAIM_BARANG);
+        daftarHakAkses.add(HakAkses.LIHAT_LAPORAN_SENDIRI);
     }
 
     @Override

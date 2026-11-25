@@ -10,11 +10,8 @@ import javax.swing.JPanel;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
-<<<<<<< HEAD:src/main/ui/components/FilePickerField.java
 import java.awt.Color;
 import java.awt.Component;
-=======
->>>>>>> ca2e27ff81bd0eaf0f0496ef3f356f4006abcbb8:src/main/java/com/campusfind/ui/components/FilePickerField.java
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;

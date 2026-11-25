@@ -1,7 +1,10 @@
 package com.campusfind.model;
 
 import java.io.Serializable;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 public abstract class User implements Serializable {
 
@@ -12,6 +15,7 @@ public abstract class User implements Serializable {
     private final String email;
     private final String passwordHash;
     private boolean aktif;
+    protected final Set<HakAkses> daftarHakAkses = new HashSet<>();
 
     protected User(String nama, String nomorIdentitas) {
         this(nama, nomorIdentitas, null, null, true);
@@ -63,13 +67,33 @@ public abstract class User implements Serializable {
 
     /**
      * Memeriksa hak akses pengguna. Keputusan diambil dari {@link Role}
-     * sehingga pemanggil tidak perlu mengetahui kelas konkret pengguna.
+     * atau {@code daftarHakAkses} sehingga pemanggil tidak perlu mengetahui kelas konkret pengguna.
      *
      * @param hakAkses hak yang ingin diperiksa
      * @return {@code true} jika role pengguna memiliki hak tersebut
      */
     public boolean punyaHak(HakAkses hakAkses) {
-        return getRole().boleh(hakAkses);
+        if (hakAkses == null) return false;
+        if (daftarHakAkses.contains(hakAkses)) return true;
+        return getRole() != null && getRole().boleh(hakAkses);
+    }
+
+    /**
+     * Alias kompatibilitas untuk memeriksa hak akses.
+     */
+    public boolean punyaAkses(HakAkses hakAkses) {
+        return punyaHak(hakAkses);
+    }
+
+    public Set<HakAkses> getDaftarHakAkses() {
+        if (!daftarHakAkses.isEmpty()) {
+            return Collections.unmodifiableSet(daftarHakAkses);
+        }
+        return getRole() != null ? getRole().getHakAkses() : Collections.emptySet();
+    }
+
+    public String tampilDashboard() {
+        return "Dashboard Pengguna: " + getNama() + " (" + getRole().getLabel() + ")";
     }
 
     /**

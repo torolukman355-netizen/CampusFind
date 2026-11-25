@@ -57,6 +57,9 @@ public enum Role {
         EnumSet<HakAkses> hak = EnumSet.noneOf(HakAkses.class);
         Collections.addAll(hak, hakPetugas());
         hak.add(HakAkses.LIHAT_STATISTIK);
+        hak.add(HakAkses.LIHAT_SEMUA_BARANG);
+        hak.add(HakAkses.KELOLA_SEMUA_LAPORAN);
+        hak.add(HakAkses.MANAJEMEN_PENGGUNA);
         return hak.toArray(new HakAkses[0]);
     }
 

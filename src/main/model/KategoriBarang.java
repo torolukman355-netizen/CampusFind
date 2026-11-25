@@ -1,6 +1,5 @@
 package com.campusfind.model;
 
-<<<<<<< HEAD:src/main/model/KategoriBarang.java
 import java.io.Serializable;
 
 /**
@@ -8,11 +7,14 @@ import java.io.Serializable;
  * non-elektronik; kategori elektronik memakai subclass {@link BarangElektronik}.
  */
 public enum KategoriBarang implements Serializable {
-=======
-public enum KategoriBarang {
->>>>>>> ca2e27ff81bd0eaf0f0496ef3f356f4006abcbb8:src/main/java/com/campusfind/model/KategoriBarang.java
     ELEKTRONIK("Elektronik"),
-    NON_ELEKTRONIK("Non-Elektronik");
+    NON_ELEKTRONIK("Non-Elektronik"),
+    KUNCI_KENDARAAN("Kunci & Kendaraan"),
+    DOKUMEN_KARTU("Dokumen & Kartu"),
+    TAS_DOMPET("Tas & Dompet"),
+    PAKAIAN_AKSESORIS("Pakaian & Aksesoris"),
+    ALAT_TULIS_BUKU("Alat Tulis & Buku"),
+    LAINNYA("Lainnya");
 
     private final String label;
 
