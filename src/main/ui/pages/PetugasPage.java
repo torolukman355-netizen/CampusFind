@@ -271,10 +271,10 @@ public class PetugasPage extends JPanel {
         // 4 KPI Summary Cards
         JPanel kpiPanel = new JPanel(new GridLayout(1, 4, 12, 0));
         kpiPanel.setOpaque(false);
-        kpiPanel.add(createKpiCard("1. LAPORAN MASUK (VERIFIKASI)", lblCountVerifikasi, "Menunggu verifikasi petugas", COLOR_ACCENT_BLUE));
-        kpiPanel.add(createKpiCard("2. ANTREAN KLAIM MAHASISWA", lblCountKlaim, "Menunggu pemeriksaan bukti", COLOR_ACCENT_AMBER));
-        kpiPanel.add(createKpiCard("3. REKOMENDASI COCOK (≥70%)", lblCountMatching, "Pasangan siap konfirmasi", COLOR_ACCENT_PURPLE));
-        kpiPanel.add(createKpiCard("4. SIAP SERAH TERIMA", lblCountSerahTerima, "Klaim selesai disetujui", COLOR_ACCENT_GREEN));
+        kpiPanel.add(createKpiCard("LAPORAN MASUK", lblCountVerifikasi, "Menunggu verifikasi petugas", COLOR_ACCENT_BLUE));
+        kpiPanel.add(createKpiCard("ANTREAN KLAIM", lblCountKlaim, "Menunggu pemeriksaan bukti", COLOR_ACCENT_AMBER));
+        kpiPanel.add(createKpiCard("SMART MATCHING (≥70%)", lblCountMatching, "Pasangan siap dikonfirmasi", COLOR_ACCENT_PURPLE));
+        kpiPanel.add(createKpiCard("SIAP SERAH TERIMA", lblCountSerahTerima, "Klaim selesai disetujui", COLOR_ACCENT_GREEN));
 
         topContainer.add(headerCard, BorderLayout.NORTH);
         topContainer.add(kpiPanel, BorderLayout.CENTER);
@@ -324,107 +324,171 @@ public class PetugasPage extends JPanel {
     // =========================================================================
     private void initCenterTabs() {
         tabbedPane = new JTabbedPane();
-        tabbedPane.setFont(Fonts.sans(12f, Font.BOLD));
+        tabbedPane.setFont(Fonts.sans(12.5f, Font.BOLD));
         tabbedPane.setBackground(Color.WHITE);
 
         // 1. Verifikasi Laporan
         modelVerifikasi = createReadOnlyModel(new String[]{"ID", "Jenis", "Nama Barang", "Kategori", "Lokasi Kejadian", "Pelapor", "Status"});
         tblVerifikasi = createModernTable(modelVerifikasi);
         setupTableSelection(tblVerifikasi, "VERIFIKASI");
-        tabbedPane.addTab("1. Verifikasi Laporan", new JScrollPane(tblVerifikasi));
+        tabbedPane.addTab("1. Verifikasi Laporan", wrapTableInScrollPane(tblVerifikasi));
 
         // 2. Pemeriksaan Klaim
         modelKlaim = createReadOnlyModel(new String[]{"ID Klaim", "ID Barang", "Pengaju", "Ciri Khusus / Bukti", "Skor", "Status Klaim"});
         tblKlaim = createModernTable(modelKlaim);
         setupTableSelection(tblKlaim, "KLAIM");
-        tabbedPane.addTab("2. Antrean Klaim", new JScrollPane(tblKlaim));
+        tabbedPane.addTab("2. Antrean Klaim", wrapTableInScrollPane(tblKlaim));
 
         // 3. Smart Matching
         modelMatching = createReadOnlyModel(new String[]{"ID Hilang", "Nama Barang Hilang", "ID Temuan", "Nama Barang Temuan", "Skor Kecocokan (%)"});
         tblMatching = createModernTable(modelMatching);
         setupTableSelection(tblMatching, "MATCHING");
-        tabbedPane.addTab("3. Rekomendasi Cocok", new JScrollPane(tblMatching));
+        tabbedPane.addTab("3. Rekomendasi Cocok", wrapTableInScrollPane(tblMatching));
 
         // 4. Inventaris & QR Code
         modelInventaris = createReadOnlyModel(new String[]{"ID", "Jenis", "Nama Barang", "Status", "Lokasi Simpan Fisik", "Kode QR Unik"});
         tblInventaris = createModernTable(modelInventaris);
         setupTableSelection(tblInventaris, "INVENTARIS");
-        tabbedPane.addTab("4. Lokasi & QR Code", new JScrollPane(tblInventaris));
+        tabbedPane.addTab("4. Lokasi & QR Code", wrapTableInScrollPane(tblInventaris));
 
         // 5. Serah Terima
         modelSerahTerima = createReadOnlyModel(new String[]{"ID Barang", "Nama Barang", "Kategori", "Lokasi Simpan", "Status", "Proteksi Data"});
         tblSerahTerima = createModernTable(modelSerahTerima);
         setupTableSelection(tblSerahTerima, "SERAH_TERIMA");
-        tabbedPane.addTab("5. Serah Terima", new JScrollPane(tblSerahTerima));
+        tabbedPane.addTab("5. Serah Terima", wrapTableInScrollPane(tblSerahTerima));
 
         tabbedPane.addChangeListener(e -> clearDetailPanel());
         add(tabbedPane, BorderLayout.CENTER);
     }
 
+    private JScrollPane wrapTableInScrollPane(JTable table) {
+        JScrollPane scroll = new JScrollPane(table);
+        scroll.setBorder(new LineBorder(COLOR_CARD_BORDER, 1));
+        scroll.getViewport().setBackground(Color.WHITE);
+        scroll.setOpaque(true);
+        scroll.setBackground(Color.WHITE);
+        return scroll;
+    }
+
     private JTable createModernTable(DefaultTableModel model) {
         JTable table = new JTable(model);
-        table.setRowHeight(34);
+        table.setRowHeight(38);
         table.setFont(Fonts.sans(12f, Font.PLAIN));
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.setGridColor(new Color(241, 245, 249));
         table.setSelectionBackground(new Color(238, 242, 255)); // Indigo 50
         table.setSelectionForeground(new Color(30, 27, 75));     // Indigo 950
         table.setShowVerticalLines(false);
+        table.setShowHorizontalLines(true);
+        table.setFillsViewportHeight(true);
 
         // Header Styling
         JTableHeader header = table.getTableHeader();
-        header.setPreferredSize(new Dimension(0, 36));
+        header.setPreferredSize(new Dimension(0, 38));
         header.setFont(Fonts.sans(12f, Font.BOLD));
         header.setBackground(new Color(241, 245, 249)); // Slate 100
         header.setForeground(new Color(51, 65, 85));     // Slate 700
         header.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, COLOR_CARD_BORDER));
+        header.setReorderingAllowed(false);
 
-        // Custom Cell Renderer untuk Status & Jenis
-        table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable tbl, Object value, boolean isSelected, boolean hasFocus, int row, int col) {
-                JLabel c = (JLabel) super.getTableCellRendererComponent(tbl, value, isSelected, hasFocus, row, col);
-                c.setBorder(new EmptyBorder(0, 10, 0, 10));
-
-                String valStr = (value != null) ? value.toString() : "-";
-
-                // Alternating row background
-                if (!isSelected) {
-                    c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(248, 250, 252));
-                    c.setForeground(COLOR_PRIMARY);
-                }
-
-                // Render Badge Warna pada Kolom Status
-                if (valStr.equalsIgnoreCase("DILAPORKAN") || valStr.equalsIgnoreCase("DIAJUKAN")) {
-                    c.setForeground(new Color(180, 83, 9)); // Amber
-                    if (isSelected) c.setFont(c.getFont().deriveFont(Font.BOLD));
-                } else if (valStr.equalsIgnoreCase("DIVERIFIKASI") || valStr.equalsIgnoreCase("TERSEDIA") || valStr.equalsIgnoreCase("DICARI")) {
-                    c.setForeground(new Color(29, 78, 216)); // Blue
-                } else if (valStr.equalsIgnoreCase("COCOK")) {
-                    c.setForeground(new Color(109, 40, 217)); // Purple
-                    c.setFont(c.getFont().deriveFont(Font.BOLD));
-                } else if (valStr.equalsIgnoreCase("DIKLAIM") || valStr.equalsIgnoreCase("DALAM_PROSES_KLAIM") || valStr.equalsIgnoreCase("DISETUJUI")) {
-                    c.setForeground(new Color(194, 65, 12)); // Orange
-                    c.setFont(c.getFont().deriveFont(Font.BOLD));
-                } else if (valStr.equalsIgnoreCase("DIKEMBALIKAN") || valStr.equalsIgnoreCase("DISERAHKAN") || valStr.equalsIgnoreCase("TERKUNCI")) {
-                    c.setForeground(new Color(4, 120, 87)); // Green
-                    c.setFont(c.getFont().deriveFont(Font.BOLD));
-                } else if (valStr.toUpperCase().contains("TOLAK") || valStr.equalsIgnoreCase("DITOLAK")) {
-                    c.setForeground(new Color(185, 28, 28)); // Red
-                }
-
-                // Render Jenis Laporan
-                if ("TEMUAN".equalsIgnoreCase(valStr)) {
-                    c.setForeground(new Color(5, 150, 105));
-                } else if ("HILANG".equalsIgnoreCase(valStr)) {
-                    c.setForeground(new Color(225, 29, 72));
-                }
-
-                return c;
+        // Apply Custom Cell Renderers based on column role
+        for (int i = 0; i < table.getColumnCount(); i++) {
+            String colName = table.getColumnName(i).toLowerCase();
+            if (colName.contains("status") || colName.contains("jenis") || colName.contains("proteksi")) {
+                table.getColumnModel().getColumn(i).setCellRenderer(new BadgeCellRenderer());
+            } else if (colName.contains("id") || colName.contains("skor") || colName.contains("qr")) {
+                table.getColumnModel().getColumn(i).setCellRenderer(new ModernTextRenderer(SwingConstants.CENTER));
+            } else {
+                table.getColumnModel().getColumn(i).setCellRenderer(new ModernTextRenderer(SwingConstants.LEFT));
             }
-        });
+        }
 
         return table;
+    }
+
+    private static class BadgeCellRenderer extends DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable tbl, Object value, boolean isSelected, boolean hasFocus, int row, int col) {
+            String text = (value != null) ? value.toString() : "-";
+            String upper = text.toUpperCase();
+
+            Color bg = new Color(241, 245, 249);
+            Color fg = new Color(71, 85, 105);
+
+            if (upper.contains("DILAPORKAN") || upper.contains("DIAJUKAN")) {
+                bg = new Color(254, 243, 199); // Amber 100
+                fg = new Color(180, 83, 9);    // Amber 800
+            } else if (upper.contains("DIVERIFIKASI") || upper.contains("TERSEDIA") || upper.contains("DICARI")) {
+                bg = new Color(239, 246, 255); // Blue 100
+                fg = new Color(29, 78, 216);   // Blue 700
+            } else if (upper.contains("COCOK")) {
+                bg = new Color(245, 243, 255); // Purple 100
+                fg = new Color(109, 40, 217);  // Purple 700
+            } else if (upper.contains("DIKLAIM") || upper.contains("PROSES") || upper.contains("DISETUJUI")) {
+                bg = new Color(255, 237, 213); // Orange 100
+                fg = new Color(194, 65, 12);   // Orange 800
+            } else if (upper.contains("DIKEMBALIKAN") || upper.contains("DISERAHKAN") || upper.contains("TERKUNCI")) {
+                bg = new Color(209, 250, 229); // Emerald 100
+                fg = new Color(4, 120, 87);    // Emerald 800
+            } else if (upper.contains("TOLAK") || upper.contains("DITOLAK")) {
+                bg = new Color(254, 226, 226); // Red 100
+                fg = new Color(185, 28, 28);   // Red 700
+            } else if (upper.equals("TEMUAN")) {
+                bg = new Color(209, 250, 229); // Emerald 100
+                fg = new Color(4, 120, 87);
+            } else if (upper.equals("HILANG")) {
+                bg = new Color(255, 228, 230); // Rose 100
+                fg = new Color(225, 29, 72);
+            }
+
+            final Color badgeBg = bg;
+            final Color badgeFg = fg;
+
+            JPanel pillPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 5));
+            pillPanel.setOpaque(true);
+            pillPanel.setBackground(isSelected ? new Color(238, 242, 255) : (row % 2 == 0 ? Color.WHITE : new Color(248, 250, 252)));
+
+            JLabel badge = new JLabel(text, SwingConstants.CENTER) {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setColor(badgeBg);
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                    g2.dispose();
+                    super.paintComponent(g);
+                }
+            };
+            badge.setOpaque(false);
+            badge.setFont(Fonts.sans(11f, Font.BOLD));
+            badge.setForeground(badgeFg);
+            badge.setBorder(new EmptyBorder(2, 9, 2, 9));
+
+            pillPanel.add(badge);
+            return pillPanel;
+        }
+    }
+
+    private static class ModernTextRenderer extends DefaultTableCellRenderer {
+        public ModernTextRenderer(int alignment) {
+            setHorizontalAlignment(alignment);
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            setBorder(new EmptyBorder(0, 12, 0, 12));
+            setFont(Fonts.sans(12f, Font.PLAIN));
+
+            if (!isSelected) {
+                c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(248, 250, 252));
+                c.setForeground(COLOR_PRIMARY);
+            } else {
+                c.setBackground(new Color(238, 242, 255));
+                c.setForeground(new Color(30, 27, 75));
+            }
+            return c;
+        }
     }
 
     private DefaultTableModel createReadOnlyModel(String[] columns) {
@@ -451,7 +515,7 @@ public class PetugasPage extends JPanel {
                 g2.dispose();
             }
         };
-        rightPanel.setPreferredSize(new Dimension(390, 0));
+        rightPanel.setPreferredSize(new Dimension(410, 0));
         rightPanel.setOpaque(false);
         rightPanel.setBorder(BorderFactory.createCompoundBorder(
                 new LineBorder(COLOR_CARD_BORDER, 1, true),
@@ -461,12 +525,12 @@ public class PetugasPage extends JPanel {
         JPanel headerPanel = new JPanel(new BorderLayout(6, 0));
         headerPanel.setOpaque(false);
 
-        JLabel lblDetailHeader = new JLabel("Rincian Barang & Log Status");
-        lblDetailHeader.setFont(new Font("SansSerif", Font.BOLD, 14));
+        JLabel lblDetailHeader = new JLabel("Rincian & Aksi Petugas");
+        lblDetailHeader.setFont(Fonts.sans(14f, Font.BOLD));
+        lblDetailHeader.setForeground(COLOR_HEADER_DARK);
 
-        JButton btnDetailLengkap = new JButton("Detail Lengkap");
-        btnDetailLengkap.setFont(new Font("SansSerif", Font.PLAIN, 11));
-        btnDetailLengkap.setFocusPainted(false);
+        JButton btnDetailLengkap = createModernButton("Detail Lengkap →", new Color(241, 245, 249), COLOR_ACCENT_BLUE);
+        btnDetailLengkap.setFont(Fonts.sans(11.5f, Font.BOLD));
         btnDetailLengkap.addActionListener(e -> {
             if (currentDetailItem != null) {
                 ItemDetailDialog.show(PetugasPage.this, currentDetailItem);
@@ -476,13 +540,23 @@ public class PetugasPage extends JPanel {
         headerPanel.add(lblDetailHeader, BorderLayout.WEST);
         headerPanel.add(btnDetailLengkap, BorderLayout.EAST);
 
-        fotoPreview = new JLabel("Pilih barang untuk melihat foto", SwingConstants.CENTER);
-        fotoPreview.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        fotoPreview.setForeground(new Color(120, 120, 130));
-        fotoPreview.setOpaque(true);
-        fotoPreview.setBackground(new Color(240, 240, 245));
-        fotoPreview.setBorder(new LineBorder(new Color(220, 224, 230)));
-        fotoPreview.setPreferredSize(new Dimension(326, 170));
+        fotoPreview = new JLabel("📷 Pilih barang untuk melihat foto", SwingConstants.CENTER) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(new Color(241, 245, 249));
+                g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
+                g2.setColor(COLOR_CARD_BORDER);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        fotoPreview.setFont(Fonts.sans(12f, Font.PLAIN));
+        fotoPreview.setForeground(new Color(148, 163, 184));
+        fotoPreview.setOpaque(false);
+        fotoPreview.setPreferredSize(new Dimension(350, 175));
         fotoPreview.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         fotoPreview.setToolTipText("Klik untuk membuka detail lengkap");
         fotoPreview.addMouseListener(new MouseAdapter() {
@@ -498,42 +572,44 @@ public class PetugasPage extends JPanel {
         txtDetailItem.setEditable(false);
         txtDetailItem.setLineWrap(true);
         txtDetailItem.setWrapStyleWord(true);
-        txtDetailItem.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        txtDetailItem.setBackground(new Color(250, 250, 252));
+        txtDetailItem.setFont(Fonts.sans(12f, Font.PLAIN));
+        txtDetailItem.setBackground(new Color(248, 250, 252));
         txtDetailItem.setForeground(new Color(30, 41, 59));
-        txtDetailItem.setBorder(new EmptyBorder(10, 10, 10, 10));
+        txtDetailItem.setBorder(new EmptyBorder(12, 14, 12, 14));
 
         JPanel centerPanel = new JPanel(new BorderLayout(0, 8));
         centerPanel.setOpaque(false);
         centerPanel.add(fotoPreview, BorderLayout.NORTH);
-        centerPanel.add(new JScrollPane(txtDetailItem), BorderLayout.CENTER);
+        JScrollPane scrollDetail = new JScrollPane(txtDetailItem);
+        scrollDetail.setBorder(new LineBorder(COLOR_CARD_BORDER, 1));
+        centerPanel.add(scrollDetail, BorderLayout.CENTER);
 
         actionButtonPanel = new JPanel(new GridLayout(2, 1, 8, 8));
         actionButtonPanel.setOpaque(false);
 
         // Definisi Tombol Aksi Petugas
-        btnTerimaLaporan = createModernButton("✔ Terima & Verifikasi (DIVERIFIKASI)", COLOR_ACCENT_GREEN, Color.WHITE);
+        btnTerimaLaporan = createModernButton("✔ Terima & Verifikasi Laporan", COLOR_ACCENT_GREEN, Color.WHITE);
         btnTerimaLaporan.addActionListener(e -> aksiTerimaLaporan());
 
-        btnTolakLaporan = createModernButton("✖ Tolak Laporan (Wajib Alasan)", COLOR_ACCENT_RED, Color.WHITE);
+        btnTolakLaporan = createModernButton("✖ Tolak Laporan", COLOR_ACCENT_RED, Color.WHITE);
         btnTolakLaporan.addActionListener(e -> aksiTolakLaporan());
 
-        btnSetujuiKlaim = createModernButton("✔ Setujui Klaim -> DIKLAIM", COLOR_ACCENT_BLUE, Color.WHITE);
+        btnSetujuiKlaim = createModernButton("✔ Setujui Klaim", COLOR_ACCENT_BLUE, Color.WHITE);
         btnSetujuiKlaim.addActionListener(e -> aksiSetujuiKlaim());
 
-        btnTolakKlaim = createModernButton("✖ Tolak Klaim (Wajib Alasan)", COLOR_ACCENT_RED, Color.WHITE);
+        btnTolakKlaim = createModernButton("✖ Tolak Klaim", COLOR_ACCENT_RED, Color.WHITE);
         btnTolakKlaim.addActionListener(e -> aksiTolakKlaim());
 
-        btnKonfirmasiCocok = createModernButton("★ Konfirmasi Kecocokan -> COCOK", COLOR_ACCENT_PURPLE, Color.WHITE);
+        btnKonfirmasiCocok = createModernButton("★ Konfirmasi Pasangan Cocok", COLOR_ACCENT_PURPLE, Color.WHITE);
         btnKonfirmasiCocok.addActionListener(e -> aksiKonfirmasiCocok());
 
-        btnUpdateLokasi = createModernButton("📦 Atur Lokasi Simpan Fisik", COLOR_ACCENT_AMBER, Color.WHITE);
+        btnUpdateLokasi = createModernButton("📦 Atur Lokasi Simpan Pos", COLOR_ACCENT_AMBER, Color.WHITE);
         btnUpdateLokasi.addActionListener(e -> aksiUpdateLokasiSimpan());
 
-        btnLihatSimpanQR = createModernButton("🖨 Lihat & Simpan QR (.PNG)", new Color(14, 165, 233), Color.WHITE);
+        btnLihatSimpanQR = createModernButton("🖨 Lihat / Cetak QR Code", new Color(14, 165, 233), Color.WHITE);
         btnLihatSimpanQR.addActionListener(e -> aksiLihatDanSimpanQR());
 
-        btnSerahTerima = createModernButton("🤝 Proses Serah Terima -> DIKEMBALIKAN", COLOR_ACCENT_GREEN, Color.WHITE);
+        btnSerahTerima = createModernButton("🤝 Selesaikan Serah Terima", COLOR_ACCENT_GREEN, Color.WHITE);
         btnSerahTerima.addActionListener(e -> aksiSerahTerimaBarang());
 
         rightPanel.add(headerPanel, BorderLayout.NORTH);
@@ -678,13 +754,13 @@ public class PetugasPage extends JPanel {
     private void tampilkanFoto(Item item) {
         BufferedImage foto = ItemImages.load(item);
         if (foto != null) {
-            fotoPreview.setIcon(new ImageIcon(ItemImages.fit(foto, 326, 170)));
+            fotoPreview.setIcon(new ImageIcon(ItemImages.fit(foto, 350, 175)));
             fotoPreview.setText("");
         } else {
             fotoPreview.setIcon(null);
             fotoPreview.setText(item == null
-                    ? "Pilih barang untuk melihat foto"
-                    : "Foto tidak tersedia");
+                    ? "📷 Pilih barang pada tabel untuk melihat foto"
+                    : "📷 Foto barang belum diunggah");
         }
     }
 
@@ -1237,7 +1313,7 @@ public class PetugasPage extends JPanel {
     private void clearDetailPanel() {
         currentDetailItem = null;
         tampilkanFoto(null);
-        txtDetailItem.setText("Pilih salah satu baris pada tabel untuk melihat rincian objek (Polimorfisme Item.tampilkanDetail()) dan melakukan aksi petugas.");
+        txtDetailItem.setText("Pilih salah satu baris pada antrean tabel di samping untuk melihat rincian barang dan melakukan aksi petugas.");
         actionButtonPanel.removeAll();
         actionButtonPanel.revalidate();
         actionButtonPanel.repaint();
