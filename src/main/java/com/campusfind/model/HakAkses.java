@@ -20,12 +20,16 @@ public enum HakAkses {
     KELOLA_QR_CODE("Cetak, Simpan, dan Pelacakan QR Code (US-017, US-018)"),
     KEPUTUSAN_KLAIM("Pemeriksaan dan Keputusan Klaim Mahasiswa (US-020)"),
     SERAH_TERIMA_BARANG("Pencatatan Serah Terima dan Penguncian Data (US-021)"),
+    SERAHKAN_BARANG_KE_POS("Penyerahan Barang Temuan Lapangan ke Pos Security (CS)"),
 
     // Hak Akses Role Admin (Lukman)
     LIHAT_SEMUA_BARANG("Lihat Seluruh Data Barang (US-003, US-007)"),
     KELOLA_SEMUA_LAPORAN("Pengelolaan Semua Laporan Sistem"),
     MANAJEMEN_PENGGUNA("Manajemen Akun dan Hak Akses Pengguna (US-022)"),
-    LIHAT_STATISTIK("Layanan & Visualisasi Statistik Sistem (US-023, US-031)");
+    LIHAT_STATISTIK("Layanan & Visualisasi Statistik Sistem (US-023, US-031)"),
+    ARSIP_BARANG("Pengarsipan Barang Lama > 60 Hari (Mitigasi Bottleneck)"),
+    LIHAT_AUDIT_LOG("Melihat Audit Log Aktivitas Sistem"),
+    KELOLA_MASTER_DATA("Pengelolaan Master Data Lokasi & Kategori");
 
     private final String deskripsi;
 

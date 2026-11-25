@@ -84,7 +84,7 @@ public class PetugasDashboardPanel extends JPanel {
 
         // Inisialisasi Sesi Petugas Aktif
         AppSession appSession = new AppSession();
-        appSession.setIdentitas("199504122020121001", this.namaPetugas);
+        appSession.setIdentitas("251402082", this.namaPetugas);
 
         // Instansiasi UI Halaman Petugas Profesional
         this.petugasPage = new PetugasPage(

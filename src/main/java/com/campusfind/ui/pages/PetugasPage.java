@@ -1,17 +1,27 @@
 package com.campusfind.ui.pages;
 
+import com.campusfind.model.Admin;
+import com.campusfind.model.BarangElektronik;
+import com.campusfind.model.BarangNonElektronik;
+import com.campusfind.model.CleaningService;
 import com.campusfind.model.Item;
+import com.campusfind.model.JenisBukti;
 import com.campusfind.model.JenisLaporan;
 import com.campusfind.model.KandidatCocokItem;
+import com.campusfind.model.KategoriBarang;
 import com.campusfind.model.Klaim;
+import com.campusfind.model.Laporan;
 import com.campusfind.model.Petugas;
+import com.campusfind.model.Security;
 import com.campusfind.model.StatusItem;
 import com.campusfind.model.StatusKlaim;
+import com.campusfind.model.User;
 import com.campusfind.repository.KlaimRepository;
 import com.campusfind.service.AppSession;
 import com.campusfind.service.ItemService;
 import com.campusfind.service.KandidatService;
 import com.campusfind.service.KlaimService;
+import com.campusfind.service.MatchingEngine;
 import com.campusfind.service.PetugasService;
 import com.campusfind.service.QRCodeService;
 import com.campusfind.ui.theme.Fonts;
@@ -21,6 +31,7 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -56,8 +67,11 @@ import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * =============================================================================
@@ -111,8 +125,14 @@ public class PetugasPage extends JPanel {
 
     // Tables & Models
     private JTabbedPane tabbedPane;
-    private JTable tblVerifikasi, tblKlaim, tblMatching, tblInventaris, tblSerahTerima;
-    private DefaultTableModel modelVerifikasi, modelKlaim, modelMatching, modelInventaris, modelSerahTerima;
+    private JTable tblVerifikasi, tblKlaim, tblMatching, tblInventaris, tblSerahTerima, tblAuditLog;
+    private DefaultTableModel modelVerifikasi, modelKlaim, modelMatching, modelInventaris, modelSerahTerima, modelAuditLog;
+
+    // Aktor Aktif & v2.0 Components
+    private JComboBox<String> cmbAktorAktif;
+    private JLabel lblPetugasInfo;
+    private JLabel lblStatistikAudit;
+    private final MatchingEngine matchingEngine = new MatchingEngine();
 
     // Right Detail Panel
     private JTextArea txtDetailItem;
@@ -120,10 +140,10 @@ public class PetugasPage extends JPanel {
     private JLabel lblDetailSubtitle;
 
     // Action Buttons
-    private JButton btnTerimaLaporan, btnTolakLaporan;
-    private JButton btnSetujuiKlaim, btnTolakKlaim;
+    private JButton btnTerimaLaporan, btnTolakLaporan, btnSerahKePosCS;
+    private JButton btnKirimOTP, btnVerifikasiOTP, btnUnlockPerangkat, btnSetujuiKlaim, btnTolakKlaim;
     private JButton btnKonfirmasiCocok;
-    private JButton btnUpdateLokasi, btnLihatSimpanQR;
+    private JButton btnUpdateLokasi, btnLihatSimpanQR, btnLihatPrivasiPublik, btnArsipkanBarang;
     private JButton btnSerahTerima;
 
     public static class MatchPair {
@@ -173,12 +193,34 @@ public class PetugasPage extends JPanel {
         refreshAllQueues();
     }
 
-    private Petugas getCurrentPetugas() {
-        if (appSession != null && appSession.isLoggedIn()) {
-            return new Petugas(appSession.getNama(), appSession.getNomorIdentitas());
+    public void setActiveRoleIndex(int idx) {
+        if (cmbAktorAktif != null && idx >= 0 && idx < cmbAktorAktif.getItemCount()) {
+            cmbAktorAktif.setSelectedIndex(idx);
+            perbaruiBannerAktor();
         }
-        // Default role officer identitas Bintang
-        return new Petugas("Bintang (Petugas)", "NIP-19950412");
+    }
+
+    private User getCurrentActor() {
+        if (cmbAktorAktif != null) {
+            int idx = cmbAktorAktif.getSelectedIndex();
+            if (idx == 1) {
+                return new CleaningService("Jevine Jeje (CS)", "CS-2026-01");
+            } else if (idx == 2) {
+                return new Admin("Lukman Toro (Admin)", "ADM-2026-01");
+            }
+        }
+        if (appSession != null && appSession.isLoggedIn()) {
+            return new Security(appSession.getNama(), appSession.getNomorIdentitas());
+        }
+        return new Security("Bintang Pamungkas", "NIP-251402082");
+    }
+
+    private Petugas getCurrentPetugas() {
+        User aktor = getCurrentActor();
+        if (aktor instanceof Petugas p) {
+            return p;
+        }
+        return new Security(aktor.getNama(), aktor.getNomorIdentitas());
     }
 
     // =========================================================================
@@ -188,8 +230,8 @@ public class PetugasPage extends JPanel {
         JPanel topContainer = new JPanel(new BorderLayout(0, 12));
         topContainer.setOpaque(false);
 
-        // Header Banner Atas
-        JPanel headerCard = new JPanel(new BorderLayout(14, 0)) {
+        // Header Banner Atas (2 Baris Rapi Tanpa Overlap)
+        JPanel headerCard = new JPanel(new BorderLayout(0, 10)) {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
@@ -201,53 +243,47 @@ public class PetugasPage extends JPanel {
             }
         };
         headerCard.setOpaque(false);
-        headerCard.setBorder(new EmptyBorder(14, 20, 14, 20));
+        headerCard.setBorder(new EmptyBorder(14, 18, 14, 18));
 
-        // Judul & Badge Petugas
-        JPanel leftHeader = new JPanel();
-        leftHeader.setLayout(new BoxLayout(leftHeader, BoxLayout.Y_AXIS));
-        leftHeader.setOpaque(false);
+        // Baris 1: Judul Kiri & Tombol Kontrol Kanan
+        JPanel row1 = new JPanel(new BorderLayout(12, 0));
+        row1.setOpaque(false);
 
-        JLabel lblEyebrow = new JLabel("CAMPUSFIND • SISTEM PENGELOLAAN BARANG HILANG & TEMUAN");
+        JPanel titleBox = new JPanel();
+        titleBox.setLayout(new BoxLayout(titleBox, BoxLayout.Y_AXIS));
+        titleBox.setOpaque(false);
+
+        JLabel lblEyebrow = new JLabel("CAMPUSFIND v2.0  •  ANTREAN OPERASIONAL PETUGAS");
         lblEyebrow.setFont(Fonts.sans(10.5f, Font.BOLD));
-        lblEyebrow.setForeground(new Color(148, 163, 184)); // Slate 400
+        lblEyebrow.setForeground(new Color(148, 163, 184));
 
-        JLabel lblTitle = new JLabel("Pusat Kendali & Antrean Kerja Petugas");
-        lblTitle.setFont(Fonts.sans(18f, Font.BOLD));
+        JLabel lblTitle = new JLabel("Pusat Kendali Verifikasi, Klaim & QR");
+        lblTitle.setFont(Fonts.sans(17f, Font.BOLD));
         lblTitle.setForeground(Color.WHITE);
 
-        String namaP = getCurrentPetugas().getNama();
-        String nipP = getCurrentPetugas().getNomorIdentitas();
-        JLabel lblPetugasInfo = new JLabel("Petugas Aktif: " + namaP + "  |  NIP: " + nipP + "  •  Status: ON-DUTY (Aktif)");
-        lblPetugasInfo.setFont(Fonts.sans(12f, Font.PLAIN));
-        lblPetugasInfo.setForeground(new Color(203, 213, 225)); // Slate 300
+        titleBox.add(lblEyebrow);
+        titleBox.add(Box.createVerticalStrut(2));
+        titleBox.add(lblTitle);
 
-        leftHeader.add(lblEyebrow);
-        leftHeader.add(Box.createVerticalStrut(2));
-        leftHeader.add(lblTitle);
-        leftHeader.add(Box.createVerticalStrut(4));
-        leftHeader.add(lblPetugasInfo);
-
-        // Tombol Kontrol Cepat Kanan
-        JPanel rightControls = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
+        JPanel rightControls = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 2));
         rightControls.setOpaque(false);
 
         lblStatusWorker.setFont(Fonts.sans(11.5f, Font.ITALIC));
-        lblStatusWorker.setForeground(new Color(226, 232, 240));
+        lblStatusWorker.setForeground(new Color(203, 213, 225));
 
-        progressWorker.setPreferredSize(new Dimension(80, 14));
+        progressWorker.setPreferredSize(new Dimension(70, 12));
         progressWorker.setVisible(false);
 
-        JButton btnScanMatch = createModernButton("⚡ Pindai Matching", new Color(139, 92, 246), Color.WHITE);
-        btnScanMatch.setToolTipText("Jalankan algoritma pencocokan cerdas di latar belakang (SwingWorker)");
+        JButton btnLaporBaru = createModernButton("+ Lapor Temuan", COLOR_ACCENT_BLUE, Color.WHITE);
+        btnLaporBaru.addActionListener(e -> dialogLaporTemuanLapangan());
+
+        JButton btnScanMatch = createModernButton("★ Pindai Matching", new Color(139, 92, 246), Color.WHITE);
         btnScanMatch.addActionListener(e -> jalankanSmartMatchingSemua());
 
-        JButton btnCariQR = createModernButton("🔍 Lacak via QR Code", new Color(51, 65, 85), Color.WHITE);
-        btnCariQR.setToolTipText("Lacak dan verifikasi barang fisik menggunakan QR Code unik");
+        JButton btnCariQR = createModernButton("[QR] Lacak QR", new Color(51, 65, 85), Color.WHITE);
         btnCariQR.addActionListener(e -> dialogLacakBarangQR());
 
-        JButton btnRefresh = createModernButton("🔄 Segarkan", new Color(71, 85, 105), Color.WHITE);
-        btnRefresh.setToolTipText("Muat ulang seluruh antrean data");
+        JButton btnRefresh = createModernButton("↻ Segarkan", new Color(71, 85, 105), Color.WHITE);
         btnRefresh.addActionListener(e -> {
             refreshAllQueues();
             JOptionPane.showMessageDialog(this, "Seluruh antrean data berhasil disegarkan.", "Informasi", JOptionPane.INFORMATION_MESSAGE);
@@ -255,12 +291,47 @@ public class PetugasPage extends JPanel {
 
         rightControls.add(lblStatusWorker);
         rightControls.add(progressWorker);
+        rightControls.add(btnLaporBaru);
         rightControls.add(btnScanMatch);
         rightControls.add(btnCariQR);
         rightControls.add(btnRefresh);
 
-        headerCard.add(leftHeader, BorderLayout.WEST);
-        headerCard.add(rightControls, BorderLayout.EAST);
+        row1.add(titleBox, BorderLayout.WEST);
+        row1.add(rightControls, BorderLayout.EAST);
+
+        // Baris 2: Aktor Switcher & Info Petugas
+        JPanel row2 = new JPanel(new BorderLayout(12, 0));
+        row2.setOpaque(false);
+
+        JPanel actorPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        actorPanel.setOpaque(false);
+        JLabel lblAktorTitle = new JLabel("Role Aktif (RBAC):");
+        lblAktorTitle.setFont(Fonts.sans(12f, Font.BOLD));
+        lblAktorTitle.setForeground(new Color(148, 163, 184));
+
+        cmbAktorAktif = new JComboBox<>(new String[]{
+                "Bintang Pamungkas — Security (Verifikator)",
+                "Jevine Jeje — Cleaning Service (Pelapor Lapangan)",
+                "Lukman Toro — Admin (Audit & Pengarsipan)"
+        });
+        cmbAktorAktif.setFont(Fonts.sans(12f, Font.BOLD));
+        cmbAktorAktif.setBackground(Color.WHITE);
+        cmbAktorAktif.setForeground(COLOR_HEADER_DARK);
+        cmbAktorAktif.addActionListener(e -> perbaruiBannerAktor());
+
+        lblPetugasInfo = new JLabel();
+        lblPetugasInfo.setFont(Fonts.sans(11.5f, Font.PLAIN));
+        lblPetugasInfo.setForeground(new Color(203, 213, 225));
+
+        actorPanel.add(lblAktorTitle);
+        actorPanel.add(cmbAktorAktif);
+        row2.add(actorPanel, BorderLayout.WEST);
+        row2.add(lblPetugasInfo, BorderLayout.CENTER);
+
+        perbaruiBannerAktor();
+
+        headerCard.add(row1, BorderLayout.NORTH);
+        headerCard.add(row2, BorderLayout.SOUTH);
 
         // 4 KPI Summary Cards
         JPanel kpiPanel = new JPanel(new GridLayout(1, 4, 12, 0));
@@ -316,40 +387,74 @@ public class PetugasPage extends JPanel {
     // =========================================================================
     // 2. Center Tabbed Tables
     // =========================================================================
+    private JScrollPane wrapTableScroll(JTable table) {
+        JScrollPane sp = new JScrollPane(table);
+        sp.setBackground(Color.WHITE);
+        sp.getViewport().setBackground(Color.WHITE);
+        sp.setBorder(new LineBorder(COLOR_CARD_BORDER, 1));
+        return sp;
+    }
+
     private void initCenterTabs() {
         tabbedPane = new JTabbedPane();
+        tabbedPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
         tabbedPane.setFont(Fonts.sans(12f, Font.BOLD));
         tabbedPane.setBackground(Color.WHITE);
+        tabbedPane.setForeground(COLOR_PRIMARY);
 
         // 1. Verifikasi Laporan
         modelVerifikasi = createReadOnlyModel(new String[]{"ID", "Jenis", "Nama Barang", "Kategori", "Lokasi Kejadian", "Pelapor", "Status"});
         tblVerifikasi = createModernTable(modelVerifikasi);
         setupTableSelection(tblVerifikasi, "VERIFIKASI");
-        tabbedPane.addTab("1. Verifikasi Laporan", new JScrollPane(tblVerifikasi));
+        tabbedPane.addTab("1. Verifikasi", wrapTableScroll(tblVerifikasi));
 
         // 2. Pemeriksaan Klaim
-        modelKlaim = createReadOnlyModel(new String[]{"ID Klaim", "ID Barang", "Pengaju", "Ciri Khusus / Bukti", "Skor", "Status Klaim"});
+        modelKlaim = createReadOnlyModel(new String[]{"ID Klaim", "ID Barang", "Pengaju", "Bukti / OTP", "Skor", "Status"});
         tblKlaim = createModernTable(modelKlaim);
         setupTableSelection(tblKlaim, "KLAIM");
-        tabbedPane.addTab("2. Antrean Klaim", new JScrollPane(tblKlaim));
+        tabbedPane.addTab("2. Klaim & OTP", wrapTableScroll(tblKlaim));
 
         // 3. Smart Matching
-        modelMatching = createReadOnlyModel(new String[]{"ID Hilang", "Nama Barang Hilang", "ID Temuan", "Nama Barang Temuan", "Skor Kecocokan (%)"});
+        modelMatching = createReadOnlyModel(new String[]{"ID Hilang", "Nama Barang Hilang", "ID Temuan", "Nama Barang Temuan", "Skor (%)"});
         tblMatching = createModernTable(modelMatching);
         setupTableSelection(tblMatching, "MATCHING");
-        tabbedPane.addTab("3. Rekomendasi Cocok", new JScrollPane(tblMatching));
+        tabbedPane.addTab("3. Matching", wrapTableScroll(tblMatching));
 
         // 4. Inventaris & QR Code
-        modelInventaris = createReadOnlyModel(new String[]{"ID", "Jenis", "Nama Barang", "Status", "Lokasi Simpan Fisik", "Kode QR Unik"});
+        modelInventaris = createReadOnlyModel(new String[]{"ID", "Jenis", "Nama Barang", "Status", "Lokasi Simpan Fisik", "Kode QR"});
         tblInventaris = createModernTable(modelInventaris);
         setupTableSelection(tblInventaris, "INVENTARIS");
-        tabbedPane.addTab("4. Lokasi & QR Code", new JScrollPane(tblInventaris));
+        tabbedPane.addTab("4. Lokasi & QR", wrapTableScroll(tblInventaris));
 
         // 5. Serah Terima
-        modelSerahTerima = createReadOnlyModel(new String[]{"ID Barang", "Nama Barang", "Kategori", "Lokasi Simpan", "Status", "Proteksi Data"});
+        modelSerahTerima = createReadOnlyModel(new String[]{"ID Barang", "Nama Barang", "Kategori", "Lokasi Simpan", "Status", "Proteksi"});
         tblSerahTerima = createModernTable(modelSerahTerima);
         setupTableSelection(tblSerahTerima, "SERAH_TERIMA");
-        tabbedPane.addTab("5. Serah Terima", new JScrollPane(tblSerahTerima));
+        tabbedPane.addTab("5. Serah Terima", wrapTableScroll(tblSerahTerima));
+
+        // 6. Audit Log & Statistik (v2.0)
+        JPanel auditPanel = new JPanel(new BorderLayout(8, 8));
+        auditPanel.setBackground(Color.WHITE);
+        auditPanel.setBorder(new EmptyBorder(8, 8, 8, 8));
+
+        JPanel auditTopBar = new JPanel(new BorderLayout(8, 8));
+        auditTopBar.setOpaque(false);
+        lblStatistikAudit = new JLabel("Memuat statistik sistem...");
+        lblStatistikAudit.setFont(Fonts.sans(12f, Font.BOLD));
+        lblStatistikAudit.setForeground(COLOR_PRIMARY);
+
+        JButton btnArsipTop = createModernButton("Arsipkan Barang Lama (> 60 Hari)", new Color(71, 85, 105), Color.WHITE);
+        btnArsipTop.addActionListener(e -> aksiArsipkanBarangLama());
+
+        auditTopBar.add(lblStatistikAudit, BorderLayout.WEST);
+        auditTopBar.add(btnArsipTop, BorderLayout.EAST);
+
+        modelAuditLog = createReadOnlyModel(new String[]{"Waktu & Catatan Audit Aktivitas Sistem"});
+        tblAuditLog = createModernTable(modelAuditLog);
+
+        auditPanel.add(auditTopBar, BorderLayout.NORTH);
+        auditPanel.add(wrapTableScroll(tblAuditLog), BorderLayout.CENTER);
+        tabbedPane.addTab("6. Audit Log", auditPanel);
 
         tabbedPane.addChangeListener(e -> clearDetailPanel());
         add(tabbedPane, BorderLayout.CENTER);
@@ -405,6 +510,9 @@ public class PetugasPage extends JPanel {
                     c.setFont(c.getFont().deriveFont(Font.BOLD));
                 } else if (valStr.toUpperCase().contains("TOLAK") || valStr.equalsIgnoreCase("DITOLAK")) {
                     c.setForeground(new Color(185, 28, 28)); // Red
+                } else if (valStr.equalsIgnoreCase("DIARSIPKAN")) {
+                    c.setForeground(new Color(100, 116, 139)); // Slate
+                    c.setFont(c.getFont().deriveFont(Font.ITALIC));
                 }
 
                 // Render Jenis Laporan
@@ -445,11 +553,11 @@ public class PetugasPage extends JPanel {
                 g2.dispose();
             }
         };
-        rightPanel.setPreferredSize(new Dimension(390, 0));
+        rightPanel.setPreferredSize(new Dimension(360, 0));
         rightPanel.setOpaque(false);
         rightPanel.setBorder(BorderFactory.createCompoundBorder(
                 new LineBorder(COLOR_CARD_BORDER, 1, true),
-                new EmptyBorder(14, 16, 14, 16)
+                new EmptyBorder(14, 14, 14, 14)
         ));
 
         // Header Panel Kanan
@@ -458,15 +566,15 @@ public class PetugasPage extends JPanel {
         rightHeader.setOpaque(false);
 
         JLabel lblDetailHeader = new JLabel("Rincian Objek & Tindakan");
-        lblDetailHeader.setFont(Fonts.sans(15f, Font.BOLD));
+        lblDetailHeader.setFont(Fonts.sans(14.5f, Font.BOLD));
         lblDetailHeader.setForeground(COLOR_HEADER_DARK);
 
-        lblDetailSubtitle = new JLabel("Pilih baris pada tabel untuk melihat data polimorfik & melakukan aksi.");
+        lblDetailSubtitle = new JLabel("<html>Pilih baris tabel untuk melihat detail polimorfik & aksi.</html>");
         lblDetailSubtitle.setFont(Fonts.sans(11.5f, Font.PLAIN));
         lblDetailSubtitle.setForeground(new Color(100, 116, 139));
 
         rightHeader.add(lblDetailHeader);
-        rightHeader.add(Box.createVerticalStrut(2));
+        rightHeader.add(Box.createVerticalStrut(3));
         rightHeader.add(lblDetailSubtitle);
 
         // Text Area Detail Rincian (US-008 Polimorfisme Item.tampilkanDetail())
@@ -475,40 +583,59 @@ public class PetugasPage extends JPanel {
         txtDetailItem.setLineWrap(true);
         txtDetailItem.setWrapStyleWord(true);
         txtDetailItem.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        txtDetailItem.setBackground(new Color(250, 250, 252));
+        txtDetailItem.setBackground(new Color(248, 250, 252));
         txtDetailItem.setForeground(new Color(30, 41, 59));
         txtDetailItem.setBorder(new EmptyBorder(10, 10, 10, 10));
 
         JScrollPane scrollDetail = new JScrollPane(txtDetailItem);
+        scrollDetail.getViewport().setBackground(new Color(248, 250, 252));
         scrollDetail.setBorder(new LineBorder(new Color(226, 232, 240), 1, true));
 
         // Action Button Panel (Dinamis sesuai Tab)
         actionButtonPanel = new JPanel(new GridLayout(2, 1, 8, 8));
         actionButtonPanel.setOpaque(false);
 
-        // Definisi Tombol Aksi Petugas
-        btnTerimaLaporan = createModernButton("✔ Terima & Verifikasi (DIVERIFIKASI)", COLOR_ACCENT_GREEN, Color.WHITE);
+        // Definisi Tombol Aksi Petugas & v2.0
+        btnTerimaLaporan = createModernButton("✓ Terima & Verifikasi (DIVERIFIKASI)", COLOR_ACCENT_GREEN, Color.WHITE);
         btnTerimaLaporan.addActionListener(e -> aksiTerimaLaporan());
 
-        btnTolakLaporan = createModernButton("✖ Tolak Laporan (Wajib Alasan)", COLOR_ACCENT_RED, Color.WHITE);
+        btnTolakLaporan = createModernButton("✕ Tolak Laporan (Wajib Alasan)", COLOR_ACCENT_RED, Color.WHITE);
         btnTolakLaporan.addActionListener(e -> aksiTolakLaporan());
 
-        btnSetujuiKlaim = createModernButton("✔ Setujui Klaim -> DIKLAIM", COLOR_ACCENT_BLUE, Color.WHITE);
+        btnSerahKePosCS = createModernButton("Serahkan ke Pos Security (CS)", new Color(2, 132, 199), Color.WHITE);
+        btnSerahKePosCS.addActionListener(e -> aksiSerahkanKePosCS());
+
+        btnKirimOTP = createModernButton("Kirim Tantangan OTP ke Akun", new Color(124, 58, 237), Color.WHITE);
+        btnKirimOTP.addActionListener(e -> aksiKirimOTP());
+
+        btnVerifikasiOTP = createModernButton("Masukkan & Cek Kode OTP", new Color(79, 70, 229), Color.WHITE);
+        btnVerifikasiOTP.addActionListener(e -> aksiVerifikasiOTP());
+
+        btnUnlockPerangkat = createModernButton("Konfirmasi Buka Layar / Recovery", new Color(13, 148, 136), Color.WHITE);
+        btnUnlockPerangkat.addActionListener(e -> aksiUnlockPerangkat());
+
+        btnSetujuiKlaim = createModernButton("✓ Setujui Klaim -> DIKLAIM", COLOR_ACCENT_BLUE, Color.WHITE);
         btnSetujuiKlaim.addActionListener(e -> aksiSetujuiKlaim());
 
-        btnTolakKlaim = createModernButton("✖ Tolak Klaim (Wajib Alasan)", COLOR_ACCENT_RED, Color.WHITE);
+        btnTolakKlaim = createModernButton("✕ Tolak Klaim (Wajib Alasan)", COLOR_ACCENT_RED, Color.WHITE);
         btnTolakKlaim.addActionListener(e -> aksiTolakKlaim());
 
         btnKonfirmasiCocok = createModernButton("★ Konfirmasi Kecocokan -> COCOK", COLOR_ACCENT_PURPLE, Color.WHITE);
         btnKonfirmasiCocok.addActionListener(e -> aksiKonfirmasiCocok());
 
-        btnUpdateLokasi = createModernButton("📦 Atur Lokasi Simpan Fisik", COLOR_ACCENT_AMBER, Color.WHITE);
+        btnUpdateLokasi = createModernButton("Atur Lokasi Simpan Fisik", COLOR_ACCENT_AMBER, Color.WHITE);
         btnUpdateLokasi.addActionListener(e -> aksiUpdateLokasiSimpan());
 
-        btnLihatSimpanQR = createModernButton("🖨 Lihat & Simpan QR (.PNG)", new Color(14, 165, 233), Color.WHITE);
+        btnLihatSimpanQR = createModernButton("Lihat & Simpan QR (.PNG)", new Color(14, 165, 233), Color.WHITE);
         btnLihatSimpanQR.addActionListener(e -> aksiLihatDanSimpanQR());
 
-        btnSerahTerima = createModernButton("🤝 Proses Serah Terima -> DIKEMBALIKAN", COLOR_ACCENT_GREEN, Color.WHITE);
+        btnLihatPrivasiPublik = createModernButton("Tampilan Publik (Privasi)", new Color(71, 85, 105), Color.WHITE);
+        btnLihatPrivasiPublik.addActionListener(e -> aksiLihatPrivasiPublik());
+
+        btnArsipkanBarang = createModernButton("Arsipkan Barang Lama (> 60 Hr)", new Color(100, 116, 139), Color.WHITE);
+        btnArsipkanBarang.addActionListener(e -> aksiArsipkanBarangLama());
+
+        btnSerahTerima = createModernButton("Proses Serah Terima -> DIKEMBALIKAN", COLOR_ACCENT_GREEN, Color.WHITE);
         btnSerahTerima.addActionListener(e -> aksiSerahTerimaBarang());
 
         rightPanel.add(rightHeader, BorderLayout.NORTH);
@@ -564,28 +691,55 @@ public class PetugasPage extends JPanel {
             String id = (String) modelVerifikasi.getValueAt(row, 0);
             itemService.findById(id).ifPresent(item -> {
                 txtDetailItem.setText(formatDetailLengkap(item));
-                actionButtonPanel.setLayout(new GridLayout(2, 1, 8, 8));
-                actionButtonPanel.add(btnTerimaLaporan);
-                actionButtonPanel.add(btnTolakLaporan);
+                if (getCurrentActor() instanceof CleaningService) {
+                    actionButtonPanel.setLayout(new GridLayout(3, 1, 6, 6));
+                    actionButtonPanel.add(btnSerahKePosCS);
+                    actionButtonPanel.add(btnTerimaLaporan);
+                    actionButtonPanel.add(btnTolakLaporan);
+                } else {
+                    actionButtonPanel.setLayout(new GridLayout(2, 1, 8, 8));
+                    actionButtonPanel.add(btnTerimaLaporan);
+                    actionButtonPanel.add(btnTolakLaporan);
+                }
             });
         } else if ("KLAIM".equals(tipeTab)) {
             String idKlaim = (String) modelKlaim.getValueAt(row, 0);
             klaimRepository.findById(idKlaim).ifPresent(klaim -> {
                 Item item = itemService.findById(klaim.getItemId()).orElse(null);
+                String syaratStr = (item != null)
+                        ? Arrays.stream(item.getSyaratBuktiUtama()).map(JenisBukti::getLabel).collect(Collectors.joining(", "))
+                        : "-";
+                String statusOtp = klaim.isOtpTerverifikasi()
+                        ? "✅ TERVERIFIKASI (Pemilik Menguasai Akun/Perangkat)"
+                        : (klaim.getKodeOTP() != null ? "⏳ Tantangan OTP Terkirim (Menunggu Input Pemilik)" : "⚠ Belum Diverifikasi OTP / Bukti Akun");
+
                 String detailKlaim = "========================================\n" +
-                        "  PEMERIKSAAN KLAIM MAHASISWA (US-020)\n" +
+                        "  PEMERIKSAAN KLAIM & CHALLENGE-RESPONSE (v2.0)\n" +
                         "========================================\n" +
                         "ID Klaim       : " + klaim.getId() + "\n" +
                         "Status Klaim   : " + klaim.getStatus().name() + "\n" +
                         "Skor Algoritma : " + klaim.getSkorKecocokan() + "% Kecocokan\n" +
                         "Pengaju Klaim  : " + klaim.getPengklaim().getNama() + " (" + klaim.getPengklaim().getNomorIdentitas() + ")\n" +
+                        "Syarat Bukti   : " + syaratStr + "\n" +
+                        "Status Verif.  : " + statusOtp + "\n" +
                         "Bukti Diajukan : " + klaim.getCiriKhusus() + "\n" +
                         "Lampiran File  : " + (klaim.getBuktiPath() != null ? klaim.getBuktiPath() : "(Tidak ada lampiran)") + "\n\n" +
                         (item != null ? formatDetailLengkap(item) : "Barang tidak ditemukan.");
                 txtDetailItem.setText(detailKlaim);
-                actionButtonPanel.setLayout(new GridLayout(2, 1, 8, 8));
-                actionButtonPanel.add(btnSetujuiKlaim);
-                actionButtonPanel.add(btnTolakKlaim);
+
+                boolean isElektronik = (item instanceof BarangElektronik);
+                if (isElektronik) {
+                    actionButtonPanel.setLayout(new GridLayout(5, 1, 6, 6));
+                    actionButtonPanel.add(btnKirimOTP);
+                    actionButtonPanel.add(btnVerifikasiOTP);
+                    actionButtonPanel.add(btnUnlockPerangkat);
+                    actionButtonPanel.add(btnSetujuiKlaim);
+                    actionButtonPanel.add(btnTolakKlaim);
+                } else {
+                    actionButtonPanel.setLayout(new GridLayout(2, 1, 8, 8));
+                    actionButtonPanel.add(btnSetujuiKlaim);
+                    actionButtonPanel.add(btnTolakKlaim);
+                }
             });
         } else if ("MATCHING".equals(tipeTab)) {
             if (row < daftarKandidatCocok.size()) {
@@ -614,9 +768,11 @@ public class PetugasPage extends JPanel {
             String id = (String) modelInventaris.getValueAt(row, 0);
             itemService.findById(id).ifPresent(item -> {
                 txtDetailItem.setText(formatDetailLengkap(item));
-                actionButtonPanel.setLayout(new GridLayout(2, 1, 8, 8));
+                actionButtonPanel.setLayout(new GridLayout(4, 1, 6, 6));
                 actionButtonPanel.add(btnUpdateLokasi);
                 actionButtonPanel.add(btnLihatSimpanQR);
+                actionButtonPanel.add(btnLihatPrivasiPublik);
+                actionButtonPanel.add(btnArsipkanBarang);
             });
         } else if ("SERAH_TERIMA".equals(tipeTab)) {
             String id = (String) modelSerahTerima.getValueAt(row, 0);
@@ -638,19 +794,31 @@ public class PetugasPage extends JPanel {
         actionButtonPanel.repaint();
     }
 
+    private void perbaruiBannerAktor() {
+        User aktor = getCurrentActor();
+        if (lblPetugasInfo != null) {
+            lblPetugasInfo.setText(aktor.tampilDashboard() + "  |  ID: " + aktor.getNomorIdentitas());
+        }
+        clearDetailPanel();
+    }
+
     /**
-     * Memanfaatkan method polimorfik item.tampilkanDetail() (US-008)
+     * Memanfaatkan method polimorfik item.tampilkanDetail() (US-008) & item.getSyaratBuktiUtama() (v2.0)
      * dan menggabungkannya dengan metadata petugas (Lokasi simpan fisik, QR Code, dan Audit Log US-012).
      */
     private String formatDetailLengkap(Item item) {
-        // Pemanggilan Method Polimorfik Asli US-008
+        // Pemanggilan Method Polimorfik Asli US-008 & v2.0
         String polymorphicDetails = item.tampilkanDetail();
+        String syaratBukti = Arrays.stream(item.getSyaratBuktiUtama())
+                .map(JenisBukti::getLabel)
+                .collect(Collectors.joining(", "));
 
         String qrStr = petugasService.getKodeQR(item);
         String lokasiFisik = petugasService.getLokasiSimpan(item);
         String auditLogs = petugasService.getRiwayatLog(item.getId());
 
         return polymorphicDetails + "\n" +
+                "Syarat Bukti    : " + syaratBukti + "\n" +
                 "Lokasi Simpan   : " + lokasiFisik + "\n" +
                 "Kode QR Unik    : " + qrStr + "\n\n" +
                 "--- RIWAYAT AUDIT STATUS OLEH PETUGAS (US-012) ---\n" +
@@ -797,10 +965,12 @@ public class PetugasPage extends JPanel {
                     if ((hilang.getStatus() == StatusItem.DICARI || hilang.getStatus() == StatusItem.DIVERIFIKASI)
                             && hilang.getPelapor() != null) {
                         try {
+                            Laporan lapHilang = Laporan.dariItem(hilang);
                             List<KandidatCocokItem> kandidat = kandidatService.cariKandidat(
                                     hilang.getId(), hilang.getPelapor().getNomorIdentitas());
                             for (KandidatCocokItem k : kandidat) {
-                                if (k.getSkor() >= 70) {
+                                Laporan lapTemuan = Laporan.dariItem(k.getItemTemuan());
+                                if (k.getSkor() >= 70 && matchingEngine.praFilter(lapHilang, lapTemuan)) {
                                     list.add(new MatchPair(hilang, k.getItemTemuan(), k.getSkor()));
                                 }
                             }
@@ -1026,6 +1196,211 @@ public class PetugasPage extends JPanel {
         }
     }
 
+    // Dokumen Konsep v2.0: Aksi Cleaning Service Menyerahkan Barang ke Pos Security
+    private void aksiSerahkanKePosCS() {
+        int row = tblVerifikasi.getSelectedRow();
+        if (row == -1) return;
+        String id = (String) modelVerifikasi.getValueAt(row, 0);
+
+        User aktor = getCurrentActor();
+        if (!(aktor instanceof CleaningService cs)) {
+            JOptionPane.showMessageDialog(this, "Aksi ini dikhususkan untuk Cleaning Service (CS) saat menyerahkan barang ke pos Security.",
+                    "Info Role", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        String lokasiPos = JOptionPane.showInputDialog(this,
+                "Masukkan lokasi rak/loker pos tujuan penyerahan (contoh: Loker Pos Security Gedung A):",
+                "Penyerahan Barang oleh Cleaning Service (v2.0)", JOptionPane.QUESTION_MESSAGE);
+        if (lokasiPos == null) return;
+
+        try {
+            petugasService.serahkanBarangKePos(id, cs, lokasiPos);
+            JOptionPane.showMessageDialog(this,
+                    "Barang " + id + " telah dicatat diserahkan ke Pos Security.\nMenunggu verifikasi oleh Security (Verifikator).",
+                    "Penyerahan Tercatat", JOptionPane.INFORMATION_MESSAGE);
+            refreshAllQueues();
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Gagal", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    // Dokumen Konsep v2.0: Lapor Temuan Lapangan oleh Security / Cleaning Service / Admin (Interface Pelapor)
+    private void dialogLaporTemuanLapangan() {
+        JComboBox<String> cmbKat = new JComboBox<>(new String[]{"Elektronik (Verifikasi Akun/OTP)", "Non-Elektronik (Ciri Fisik)"});
+        JTextField txtNama = new JTextField();
+        JTextField txtLokasi = new JTextField();
+        JTextField txtAttr1 = new JTextField(); // Merk atau Warna
+        JTextField txtAttr2 = new JTextField(); // Akun Terdaftar atau Bahan
+        JTextField txtSeri = new JTextField();
+        JTextField txtCiri = new JTextField();
+
+        JPanel panel = new JPanel(new GridLayout(7, 2, 6, 6));
+        panel.setBorder(new EmptyBorder(8, 8, 8, 8));
+        panel.add(new JLabel("Jenis Barang:"));
+        panel.add(cmbKat);
+        panel.add(new JLabel("Nama Barang Temuan:"));
+        panel.add(txtNama);
+        panel.add(new JLabel("Lokasi Ditemukan:"));
+        panel.add(txtLokasi);
+        panel.add(new JLabel("Merk (Elektronik) / Warna (Non):"));
+        panel.add(txtAttr1);
+        panel.add(new JLabel("Akun Terdaftar / Bahan:"));
+        panel.add(txtAttr2);
+        panel.add(new JLabel("Nomor Seri (Cadangan / Opsional):"));
+        panel.add(txtSeri);
+        panel.add(new JLabel("Ciri Khusus Fisik:"));
+        panel.add(txtCiri);
+
+        int res = JOptionPane.showConfirmDialog(this, panel,
+                "Buat Laporan Temuan Lapangan (" + getCurrentActor().getNama() + ")",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+        if (res == JOptionPane.OK_OPTION) {
+            if (txtNama.getText().isBlank() || txtLokasi.getText().isBlank()) {
+                JOptionPane.showMessageDialog(this, "Nama barang dan lokasi wajib diisi!", "Validasi", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            String newId = "T-" + (200 + (int) (Math.random() * 799));
+            Item baru;
+            if (cmbKat.getSelectedIndex() == 0) {
+                baru = new BarangElektronik(
+                        newId, JenisLaporan.TEMUAN, txtNama.getText().trim(), KategoriBarang.ELEKTRONIK,
+                        "Temuan lapangan oleh " + getCurrentActor().getNama(), txtLokasi.getText().trim(),
+                        LocalDate.now(), "POS-0001", null, txtCiri.getText().trim(),
+                        StatusItem.DILAPORKAN, LocalDateTime.now(), getCurrentActor(),
+                        txtAttr1.getText().trim(), txtSeri.getText().trim(), "Standard", txtAttr2.getText().trim()
+                );
+            } else {
+                baru = new BarangNonElektronik(
+                        newId, JenisLaporan.TEMUAN, txtNama.getText().trim(), KategoriBarang.TAS_DOMPET,
+                        "Temuan lapangan oleh " + getCurrentActor().getNama(), txtLokasi.getText().trim(),
+                        LocalDate.now(), "POS-0001", null, txtCiri.getText().trim(),
+                        StatusItem.DILAPORKAN, LocalDateTime.now(), getCurrentActor(),
+                        txtAttr1.getText().trim(), txtAttr2.getText().trim()
+                );
+            }
+            try {
+                petugasService.laporkanTemuanLapangan(baru, getCurrentPetugas());
+                JOptionPane.showMessageDialog(this,
+                        "Laporan temuan lapangan [" + newId + "] berhasil disimpan!\nSilakan lakukan verifikasi oleh Security.",
+                        "Berhasil (Pelapor v2.0)", JOptionPane.INFORMATION_MESSAGE);
+                refreshAllQueues();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    // Dokumen Konsep v2.0 (Section 3.5): Challenge-Response Kirim Tantangan OTP
+    private void aksiKirimOTP() {
+        int row = tblKlaim.getSelectedRow();
+        if (row == -1) return;
+        String idKlaim = (String) modelKlaim.getValueAt(row, 0);
+
+        try {
+            String otp = klaimService.kirimTantanganOTP(idKlaim, getCurrentPetugas());
+            JOptionPane.showMessageDialog(this,
+                    "Tantangan OTP berhasil dikirim ke akun/nomor terdaftar pengklaim!\n\n" +
+                            "[SIMULASI NOTIFIKASI PENGKLAIM]\nKode OTP Anda: " + otp + "\n\n" +
+                            "Petugas Security tidak perlu mengakses akun/perangkat; minta pengklaim membacakan/memasukkan OTP ini.",
+                    "Challenge-Response OTP (v2.0)", JOptionPane.INFORMATION_MESSAGE);
+            refreshAllQueues();
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Akses / Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    // Dokumen Konsep v2.0 (Section 3.5): Cek Input OTP dari Pemilik
+    private void aksiVerifikasiOTP() {
+        int row = tblKlaim.getSelectedRow();
+        if (row == -1) return;
+        String idKlaim = (String) modelKlaim.getValueAt(row, 0);
+
+        String input = JOptionPane.showInputDialog(this,
+                "Masukkan 6-digit Kode OTP yang diterima pemilik pada akun terdaftarnya:",
+                "Verifikasi Challenge-Response OTP", JOptionPane.QUESTION_MESSAGE);
+        if (input == null || input.isBlank()) return;
+
+        try {
+            boolean cocok = klaimService.verifikasiTantanganOTP(idKlaim, input);
+            if (cocok) {
+                JOptionPane.showMessageDialog(this,
+                        "✅ OTP COCOK! Pengklaim terbukti menguasai akun terdaftar perangkat elektronik.\n" +
+                                "Anda kini dapat menyetujui klaim dengan aman.",
+                        "Verifikasi OTP Berhasil", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "❌ OTP TIDAK COCOK! Verifikasi kepemilikan gagal.",
+                        "OTP Tidak Valid", JOptionPane.WARNING_MESSAGE);
+            }
+            refreshAllQueues();
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    // Dokumen Konsep v2.0: Alternatif Buka Kunci Layar / Recovery Akun di hadapan Security
+    private void aksiUnlockPerangkat() {
+        int row = tblKlaim.getSelectedRow();
+        if (row == -1) return;
+        String idKlaim = (String) modelKlaim.getValueAt(row, 0);
+
+        String[] metode = {"Membuka Kunci Layar Perangkat (PIN/Sidik Jari)", "Verifikasi Recovery Akun Perangkat"};
+        int pilih = JOptionPane.showOptionDialog(this,
+                "Konfirmasi pembuktian langsung kepemilikan perangkat elektronik di pos:",
+                "Verifikasi Perangkat (v2.0)", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE,
+                null, metode, metode[0]);
+        if (pilih < 0) return;
+
+        try {
+            JenisBukti jb = (pilih == 0) ? JenisBukti.UNLOCK_PERANGKAT : JenisBukti.RECOVERY_AKUN;
+            klaimService.verifikasiBuktiPerangkatTerbuka(idKlaim, jb, getCurrentPetugas());
+            JOptionPane.showMessageDialog(this,
+                    "✅ Pembuktian (" + jb.getLabel() + ") tercatat berhasil!",
+                    "Terverifikasi", JOptionPane.INFORMATION_MESSAGE);
+            refreshAllQueues();
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Akses Ditolak", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    // Dokumen Konsep v2.0 (Section 2.6 & 3.3): Tampilan Publik dengan Privasi Pelapor Terlindungi
+    private void aksiLihatPrivasiPublik() {
+        int row = tblInventaris.getSelectedRow();
+        if (row == -1) return;
+        String id = (String) modelInventaris.getValueAt(row, 0);
+        itemService.findById(id).ifPresent(item -> {
+            Laporan laporan = Laporan.dariItem(item);
+            JOptionPane.showMessageDialog(this,
+                    "=== TAMPILAN PUBLIK (MAHASISWA LAIN) ===\n" +
+                            laporan.tampilkanKePublik() + "\n\n" +
+                            "=== PERBANDINGAN AKSES PETUGAS BERWENANG ===\n" +
+                            "Pelapor Asli: " + (laporan.getPelapor() != null ? laporan.getPelapor().getNama() : "-"),
+                    "Perlindungan Privasi Pelapor (v2.0)", JOptionPane.INFORMATION_MESSAGE);
+        });
+    }
+
+    // Dokumen Konsep v2.0 (Section 2.6): Pengarsipan Barang Lama (> 60 Hari) -> DIARSIPKAN
+    private void aksiArsipkanBarangLama() {
+        try {
+            int jml = petugasService.arsipkanBarangLama(60, getCurrentActor());
+            if (jml > 0) {
+                JOptionPane.showMessageDialog(this,
+                        "Berhasil mengarsipkan " + jml + " barang lama (> 60 hari tanpa klaim) menjadi status DIARSIPKAN.\n" +
+                                "Antrean pos & database kini tetap bersih dan bebas penumpukan.",
+                        "Pengarsipan Berhasil (v2.0)", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "Tidak ada barang aktif yang melebihi batas usia 60 hari saat ini.",
+                        "Informasi Pengarsipan", JOptionPane.INFORMATION_MESSAGE);
+            }
+            refreshAllQueues();
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Akses Ditolak", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
     // US-021 & US-029: Pencatatan Serah Terima Barang & Penguncian Data
     private void aksiSerahTerimaBarang() {
         int row = tblSerahTerima.getSelectedRow();
@@ -1088,13 +1463,24 @@ public class PetugasPage extends JPanel {
         modelMatching.setRowCount(0);
         modelInventaris.setRowCount(0);
         modelSerahTerima.setRowCount(0);
+        if (modelAuditLog != null) modelAuditLog.setRowCount(0);
 
         int countVerif = 0;
         int countKlaim = 0;
         int countSerah = 0;
+        int countDikembalikan = 0;
+        int countDiarsipkan = 0;
+        int totalItems = 0;
 
         for (Item item : itemService.findAll()) {
+            totalItems++;
             String pelaporNama = (item.getPelapor() != null) ? item.getPelapor().getNama() : "-";
+            if (item.getStatus() == StatusItem.DIKEMBALIKAN || item.getStatus() == StatusItem.DISERAHKAN) {
+                countDikembalikan++;
+            }
+            if (item.getStatus() == StatusItem.DIARSIPKAN) {
+                countDiarsipkan++;
+            }
 
             // Tab 1: Antrean Verifikasi (DILAPORKAN)
             if (item.getStatus() == StatusItem.DILAPORKAN) {
@@ -1142,11 +1528,14 @@ public class PetugasPage extends JPanel {
         if (klaimRepository != null) {
             for (Klaim k : klaimRepository.findAll()) {
                 if (k.getStatus() == StatusKlaim.DIAJUKAN || "MENUNGGU_VERIFIKASI".equals(k.getStatus().name())) {
+                    String buktiInfo = k.isOtpTerverifikasi()
+                            ? "✅ OTP/Akun Terverifikasi | " + k.getCiriKhusus()
+                            : (k.getJenisBukti() == JenisBukti.OTP_AKUN_TERDAFTAR ? "🔐 Perlu OTP Akun | " : "📝 Ciri Fisik | ") + k.getCiriKhusus();
                     modelKlaim.addRow(new Object[]{
                             k.getId(),
                             k.getItemId(),
                             k.getPengklaim().getNama(),
-                            k.getCiriKhusus(),
+                            buktiInfo,
                             k.getSkorKecocokan() + "%",
                             k.getStatus().name()
                     });
@@ -1166,24 +1555,43 @@ public class PetugasPage extends JPanel {
             });
         }
 
+        // Tab 6: Audit Log & Statistik
+        if (modelAuditLog != null) {
+            for (String logEntry : petugasService.getAuditLogGlobal()) {
+                modelAuditLog.addRow(new Object[]{logEntry});
+            }
+        }
+        if (lblStatistikAudit != null) {
+            int returnRate = totalItems > 0 ? (countDikembalikan * 100 / totalItems) : 0;
+            lblStatistikAudit.setText("Total Barang: " + totalItems + "  |  Dikembalikan: " + countDikembalikan
+                    + " (" + returnRate + "%)  |  Diarsipkan (>60hr): " + countDiarsipkan);
+        }
+
         lblCountVerifikasi.setText(String.valueOf(countVerif));
         lblCountKlaim.setText(String.valueOf(countKlaim));
         lblCountMatching.setText(String.valueOf(daftarKandidatCocok.size()));
         lblCountSerahTerima.setText(String.valueOf(countSerah));
 
-        tabbedPane.setTitleAt(0, "1. Verifikasi Laporan (" + countVerif + ")");
-        tabbedPane.setTitleAt(1, "2. Antrean Klaim (" + countKlaim + ")");
-        tabbedPane.setTitleAt(2, "3. Rekomendasi Cocok (" + daftarKandidatCocok.size() + ")");
-        tabbedPane.setTitleAt(3, "4. Lokasi & QR Code");
+        tabbedPane.setTitleAt(0, "1. Verifikasi (" + countVerif + ")");
+        tabbedPane.setTitleAt(1, "2. Klaim & OTP (" + countKlaim + ")");
+        tabbedPane.setTitleAt(2, "3. Matching (" + daftarKandidatCocok.size() + ")");
+        tabbedPane.setTitleAt(3, "4. Lokasi & QR");
         tabbedPane.setTitleAt(4, "5. Serah Terima (" + countSerah + ")");
+        if (tabbedPane.getTabCount() > 5) {
+            tabbedPane.setTitleAt(5, "6. Audit Log (" + (modelAuditLog != null ? modelAuditLog.getRowCount() : 0) + ")");
+        }
 
         clearDetailPanel();
     }
 
     private void clearDetailPanel() {
-        txtDetailItem.setText("Pilih salah satu baris pada tabel untuk melihat rincian objek (Polimorfisme Item.tampilkanDetail()) dan melakukan aksi petugas.");
-        actionButtonPanel.removeAll();
-        actionButtonPanel.revalidate();
-        actionButtonPanel.repaint();
+        if (txtDetailItem != null) {
+            txtDetailItem.setText("Pilih salah satu baris pada tabel untuk melihat rincian objek (Polimorfisme Item.tampilkanDetail() & Syarat Bukti v2.0) dan melakukan aksi petugas.");
+        }
+        if (actionButtonPanel != null) {
+            actionButtonPanel.removeAll();
+            actionButtonPanel.revalidate();
+            actionButtonPanel.repaint();
+        }
     }
 }

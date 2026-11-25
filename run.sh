@@ -27,9 +27,12 @@ echo "==============================================================="
 echo "        MEMULAI CAMPUSFIND DESKTOP APP (ROLE PETUGAS)"
 echo "==============================================================="
 
-# 3. Pastikan kelas terkompilasi
+# 3. Pastikan kelas & resource terkompilasi
 mkdir -p target/classes
 javac -cp "$CP" -d target/classes $(find src/main/java -name "*.java")
+if [ -d "src/main/resources" ]; then
+    cp -r src/main/resources/* target/classes/
+fi
 
 # 4. Cek Wayland/X11 display untuk lingkungan Linux GUI
 if [ -z "$DISPLAY" ] && [ -n "$WAYLAND_DISPLAY" ]; then

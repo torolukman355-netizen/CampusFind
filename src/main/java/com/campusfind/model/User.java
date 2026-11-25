@@ -16,11 +16,44 @@ public abstract class User implements Serializable {
 
     private final String nama;
     private final String nomorIdentitas;
+    protected String email;
+    protected String password;
+    protected boolean sedangLogin;
     protected final Set<HakAkses> daftarHakAkses = new HashSet<>();
 
     protected User(String nama, String nomorIdentitas) {
         this.nama = nama;
         this.nomorIdentitas = nomorIdentitas;
+        this.email = nomorIdentitas != null ? nomorIdentitas.toLowerCase() + "@campusfind.ac.id" : "";
+        this.sedangLogin = true;
+    }
+
+    protected User(String nama, String nomorIdentitas, String email, String password) {
+        this.nama = nama;
+        this.nomorIdentitas = nomorIdentitas;
+        this.email = email;
+        this.password = password;
+    }
+
+    public boolean login(String emailInput, String passwordInput) {
+        if (this.email != null && this.email.equalsIgnoreCase(emailInput)
+                && (this.password == null || this.password.equals(passwordInput))) {
+            this.sedangLogin = true;
+            return true;
+        }
+        return false;
+    }
+
+    public void logout() {
+        this.sedangLogin = false;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public boolean isSedangLogin() {
+        return sedangLogin;
     }
 
     public String getNama() {

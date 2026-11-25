@@ -334,10 +334,11 @@ public class PetugasRoleComprehensiveTest {
         assertTrue(m.punyaAkses(HakAkses.BUAT_LAPORAN));
         assertTrue(m.punyaAkses(HakAkses.KLAIM_BARANG));
 
-        // Admin punya akses penuh manajemen & statistik
+        // Admin punya akses penuh manajemen, statistik, & Pelapor (v2.0)
         assertTrue(a.punyaAkses(HakAkses.LIHAT_SEMUA_BARANG));
         assertTrue(a.punyaAkses(HakAkses.MANAJEMEN_PENGGUNA));
         assertTrue(a.punyaAkses(HakAkses.LIHAT_STATISTIK));
-        assertFalse(a.punyaAkses(HakAkses.BUAT_LAPORAN));
+        assertTrue(a.punyaAkses(HakAkses.BUAT_LAPORAN));
+        assertFalse(a.punyaAkses(HakAkses.KLAIM_BARANG));
     }
 }

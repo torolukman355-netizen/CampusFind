@@ -65,6 +65,8 @@ public final class StatusMapper {
             case COCOK -> "COCOK";
             case DALAM_PROSES_KLAIM, DIKLAIM -> "DIKLAIM";
             case DISERAHKAN, DIKEMBALIKAN -> "DIKEMBALIKAN";
+            case DITOLAK -> "DITOLAK";
+            case DIARSIPKAN -> "DIARSIPKAN";
         };
     };
 }

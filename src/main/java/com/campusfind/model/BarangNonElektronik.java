@@ -30,6 +30,11 @@ public class BarangNonElektronik extends Item {
     }
 
     @Override
+    public JenisBukti[] getSyaratBuktiUtama() {
+        return new JenisBukti[]{JenisBukti.CIRI_FISIK};
+    }
+
+    @Override
     public String tampilkanDetail() {
         String pelaporInfo = (getPelapor() != null)
                 ? getPelapor().getNama() + " (" + getPelapor().getNomorIdentitas() + ")"

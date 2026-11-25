@@ -1,6 +1,8 @@
 package com.campusfind.service;
 
+import com.campusfind.model.HakAkses;
 import com.campusfind.model.Item;
+import com.campusfind.model.JenisBukti;
 import com.campusfind.model.JenisLaporan;
 import com.campusfind.model.Klaim;
 import com.campusfind.model.Mahasiswa;
@@ -99,7 +101,10 @@ public class KlaimService {
         Item item = itemRepository.findById(itemId).orElseThrow(() ->
                 new BarangTidakTersediaException("Barang ini sudah tidak tersedia untuk diklaim."));
 
-        if (item.getJenis() != JenisLaporan.TEMUAN || item.getStatus() != StatusItem.TERSEDIA) {
+        if (item.getJenis() != JenisLaporan.TEMUAN
+                || (item.getStatus() != StatusItem.TERSEDIA
+                    && item.getStatus() != StatusItem.DIVERIFIKASI
+                    && item.getStatus() != StatusItem.COCOK)) {
             throw new BarangTidakTersediaException("Barang ini sudah tidak tersedia untuk diklaim.");
         }
 
@@ -213,8 +218,8 @@ public class KlaimService {
      * @param aktor   petugas yang menyetujui klaim
      */
     public synchronized void setujui(String klaimId, Petugas aktor) {
-        if (aktor == null) {
-            throw new SecurityException("Aksi persetujuan klaim hanya dapat dilakukan oleh Petugas.");
+        if (aktor == null || !aktor.punyaAkses(HakAkses.KEPUTUSAN_KLAIM)) {
+            throw new SecurityException("Aksi persetujuan klaim hanya dapat dilakukan oleh Security / Petugas Verifikator berwenang.");
         }
 
         Klaim klaim = klaimRepository.findById(klaimId).orElseThrow(() ->
@@ -280,8 +285,8 @@ public class KlaimService {
      * @param aktor   petugas yang menolak klaim
      */
     public synchronized void tolak(String klaimId, String alasan, Petugas aktor) {
-        if (aktor == null) {
-            throw new SecurityException("Aksi penolakan klaim hanya dapat dilakukan oleh Petugas.");
+        if (aktor == null || !aktor.punyaAkses(HakAkses.KEPUTUSAN_KLAIM)) {
+            throw new SecurityException("Aksi penolakan klaim hanya dapat dilakukan oleh Security / Petugas Verifikator berwenang.");
         }
 
         if (alasan == null || alasan.trim().length() < 5) {
@@ -354,6 +359,57 @@ public class KlaimService {
      */
     public List<Klaim> findByPengklaim(String nomorIdentitas) {
         return klaimRepository.findByPengklaim(nomorIdentitas);
+    }
+
+    /**
+     * Dokumen Konsep v2.0 (Section 3.5): Mengirim tantangan OTP ke akun terdaftar pemilik barang elektronik.
+     */
+    public synchronized String kirimTantanganOTP(String klaimId, Petugas aktor) {
+        if (aktor == null || !aktor.punyaAkses(HakAkses.KEPUTUSAN_KLAIM)) {
+            throw new SecurityException("Hanya Security / Verifikator yang dapat mengirim tantangan OTP.");
+        }
+        Klaim klaim = klaimRepository.findById(klaimId).orElseThrow(() ->
+                new IllegalArgumentException("Klaim tidak ditemukan."));
+        String otp = klaim.kirimOTP();
+        klaimRepository.save(klaim);
+
+        notificationService.kirim(
+                klaim.getPengklaim().getNomorIdentitas(),
+                NotificationType.KLAIM_DITERIMA,
+                "Kode OTP Verifikasi Kepemilikan",
+                "Kode OTP verifikasi kepemilikan Anda untuk klaim " + klaim.getId() + " adalah: " + otp + ". Tunjukkan ke Security.",
+                klaim.getId()
+        );
+        return otp;
+    }
+
+    /**
+     * Dokumen Konsep v2.0 (Section 3.5): Verifikasi Challenge-Response OTP oleh pemilik.
+     */
+    public synchronized boolean verifikasiTantanganOTP(String klaimId, String inputOtp) {
+        Klaim klaim = klaimRepository.findById(klaimId).orElseThrow(() ->
+                new IllegalArgumentException("Klaim tidak ditemukan."));
+        boolean cocok = klaim.cekOTP(inputOtp);
+        if (cocok) {
+            klaim.setCatatanPetugas("Challenge-Response OTP Terverifikasi (COCOK)");
+        }
+        klaimRepository.save(klaim);
+        return cocok;
+    }
+
+    /**
+     * Alternatif bukti elektronik v2.0: Pemilik berhasil membuka kunci layar atau memverifikasi recovery akun di hadapan Security.
+     */
+    public synchronized void verifikasiBuktiPerangkatTerbuka(String klaimId, JenisBukti metode, Petugas aktor) {
+        if (aktor == null || !aktor.punyaAkses(HakAkses.KEPUTUSAN_KLAIM)) {
+            throw new SecurityException("Hanya Security / Verifikator yang dapat mengonfirmasi pembuktian perangkat.");
+        }
+        Klaim klaim = klaimRepository.findById(klaimId).orElseThrow(() ->
+                new IllegalArgumentException("Klaim tidak ditemukan."));
+        klaim.setJenisBukti(metode != null ? metode : JenisBukti.UNLOCK_PERANGKAT);
+        klaim.setOtpTerverifikasi(true);
+        klaim.setCatatanPetugas("Terverifikasi via " + klaim.getJenisBukti().getLabel() + " oleh " + aktor.getNama());
+        klaimRepository.save(klaim);
     }
 
     /**

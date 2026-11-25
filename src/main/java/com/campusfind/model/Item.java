@@ -119,12 +119,24 @@ public abstract class Item implements Serializable {
     public abstract String tampilkanDetail();
 
     /**
-     * Memeriksa apakah data barang sudah terkunci permanen setelah diserahterimakan (US-021).
+     * Dokumen Konsep v2.0 (Section 3.2): Method polimorfik untuk menentukan syarat bukti kepemilikan utama.
+     * Barang Elektronik menggunakan verifikasi akun terdaftar (OTP / Unlock / Recovery);
+     * Barang Non-Elektronik menggunakan ciri fisik.
      *
-     * @return true jika status adalah DIKEMBALIKAN atau DISERAHKAN
+     * @return array JenisBukti yang dipersyaratkan
+     */
+    public abstract JenisBukti[] getSyaratBuktiUtama();
+
+    /**
+     * Memeriksa apakah data barang sudah terkunci permanen setelah diserahterimakan/diarsipkan (US-021, v2.0).
+     *
+     * @return true jika status adalah DIKEMBALIKAN, DISERAHKAN, DITOLAK, atau DIARSIPKAN
      */
     public boolean isTerkunci() {
-        return status == StatusItem.DIKEMBALIKAN || status == StatusItem.DISERAHKAN;
+        return status == StatusItem.DIKEMBALIKAN
+                || status == StatusItem.DISERAHKAN
+                || status == StatusItem.DIARSIPKAN
+                || status == StatusItem.DITOLAK;
     }
 
     @Override

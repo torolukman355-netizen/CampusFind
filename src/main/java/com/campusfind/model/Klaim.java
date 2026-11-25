@@ -1,6 +1,7 @@
 package com.campusfind.model;
 
 import java.io.Serializable;
+import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -8,6 +9,7 @@ import java.util.Objects;
 public class Klaim implements Serializable {
 
     private static final long serialVersionUID = 1L;
+    private static final SecureRandom OTP_RNG = new SecureRandom();
 
     private final String id;
     private final String itemId;
@@ -23,6 +25,11 @@ public class Klaim implements Serializable {
     private StatusKlaim status;
     private final LocalDateTime diajukanPada;
     private String catatanPetugas;
+
+    // Upgrade Dokumen Konsep v2.0: Verifikasi Challenge-Response (OTP / Bukti Kepemilikan)
+    private String kodeOTP;
+    private boolean otpTerverifikasi;
+    private JenisBukti jenisBukti = JenisBukti.CIRI_FISIK;
 
     public Klaim(String id, String itemId, User pengklaim, String ciriKhusus,
                  String buktiPath, LocalDate tanggalSerahTerima, SesiLayanan sesi,
@@ -119,6 +126,65 @@ public class Klaim implements Serializable {
 
     public void setBuktiPath(String buktiPath) {
         this.buktiPath = buktiPath;
+    }
+
+    // --- Method v2.0 Challenge-Response Verification ---
+
+    public boolean ajukan() {
+        if (this.status == null) {
+            this.status = StatusKlaim.DIAJUKAN;
+        }
+        return true;
+    }
+
+    /**
+     * Menghasilkan tantangan kode OTP 6-digit untuk verifikasi akun terdaftar perangkat elektronik.
+     */
+    public String kirimOTP() {
+        int code = 100000 + OTP_RNG.nextInt(900000);
+        this.kodeOTP = String.valueOf(code);
+        this.otpTerverifikasi = false;
+        this.jenisBukti = JenisBukti.OTP_AKUN_TERDAFTAR;
+        return this.kodeOTP;
+    }
+
+    /**
+     * Pemilik membuktikan penguasaan akun terdaftar dengan memasukkan OTP yang diterima.
+     * Petugas tidak perlu melihat isi perangkat maupun akun; cukup melihat hasil boolean ini.
+     */
+    public boolean cekOTP(String input) {
+        if (this.kodeOTP == null || input == null) {
+            return false;
+        }
+        boolean cocok = this.kodeOTP.equals(input.trim());
+        if (cocok) {
+            this.otpTerverifikasi = true;
+        }
+        return cocok;
+    }
+
+    public void ubahStatusKlaim(StatusKlaim statusBaru) {
+        this.status = Objects.requireNonNull(statusBaru, "Status klaim baru tidak boleh null");
+    }
+
+    public String getKodeOTP() {
+        return kodeOTP;
+    }
+
+    public boolean isOtpTerverifikasi() {
+        return otpTerverifikasi;
+    }
+
+    public void setOtpTerverifikasi(boolean otpTerverifikasi) {
+        this.otpTerverifikasi = otpTerverifikasi;
+    }
+
+    public JenisBukti getJenisBukti() {
+        return jenisBukti != null ? jenisBukti : JenisBukti.CIRI_FISIK;
+    }
+
+    public void setJenisBukti(JenisBukti jenisBukti) {
+        this.jenisBukti = jenisBukti;
     }
 
     @Override
