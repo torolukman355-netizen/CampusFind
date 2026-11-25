@@ -1,8 +1,6 @@
 package com.campusfind.model;
 
-import java.io.Serializable;
-
-public enum StatusItem implements Serializable {
+public enum StatusItem {
     DILAPORKAN("Dilaporkan"),
     DIVERIFIKASI("Diverifikasi"),
     COCOK("Cocok"),
@@ -12,8 +10,6 @@ public enum StatusItem implements Serializable {
     DIKLAIM("Diklaim"),
     DIKEMBALIKAN("Dikembalikan"),
     DISERAHKAN("Diserahkan");
-
-    private static final long serialVersionUID = 1L;
 
     private final String label;
 

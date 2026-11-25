@@ -1,7 +1,6 @@
 package com.campusfind.ui.components;
 
 import com.campusfind.model.Item;
-import com.campusfind.model.PosPenyimpanan;
 import com.campusfind.ui.theme.Fonts;
 import com.campusfind.ui.theme.Theme;
 
@@ -13,7 +12,6 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.Image;
 import java.awt.RenderingHints;
 import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;

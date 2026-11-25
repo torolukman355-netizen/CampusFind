@@ -1,6 +1,5 @@
 package com.campusfind;
 
-import com.campusfind.model.BarangElektronik;
 import com.campusfind.model.Item;
 import com.campusfind.model.ItemFactory;
 import com.campusfind.model.JenisLaporan;

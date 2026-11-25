@@ -25,6 +25,7 @@ import java.util.List;
 
 public class PosPage extends ResponsivePage {
 
+    @SuppressWarnings("unused")
     private final NavigationController controller;
     private final PosService posService;
     private final PageHeader header;

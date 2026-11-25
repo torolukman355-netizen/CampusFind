@@ -19,7 +19,6 @@ import com.campusfind.repository.ItemRepository;
 import com.campusfind.repository.KlaimRepository;
 import com.campusfind.repository.NotificationRepository;
 import com.campusfind.repository.PosRepository;
-import com.campusfind.service.CandidateMatchingStrategy;
 import com.campusfind.service.KlaimService;
 import com.campusfind.service.TokenOverlapStrategy;
 import org.junit.jupiter.api.BeforeEach;

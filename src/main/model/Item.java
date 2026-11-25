@@ -125,6 +125,7 @@ public abstract class Item implements Serializable {
         this.posId = posId;
     }
 
+<<<<<<< HEAD:src/main/model/Item.java
     public String getTempatPenitipan() {
         return (tempatPenitipan != null && !tempatPenitipan.isBlank()) ? tempatPenitipan : posId;
     }
@@ -145,6 +146,23 @@ public abstract class Item implements Serializable {
                 (status == StatusItem.TERSEDIA
                  || status == StatusItem.DIVERIFIKASI
                  || status == StatusItem.COCOK);
+=======
+    /**
+     * US-008: Method polimorfik untuk menampilkan rincian lengkap barang
+     * sesuai tipe spesifiknya (BarangElektronik / BarangNonElektronik).
+     *
+     * @return representasi string rincian objek barang
+     */
+    public abstract String tampilkanDetail();
+
+    /**
+     * Memeriksa apakah data barang sudah terkunci permanen setelah diserahterimakan (US-021).
+     *
+     * @return true jika status adalah DIKEMBALIKAN atau DISERAHKAN
+     */
+    public boolean isTerkunci() {
+        return status == StatusItem.DIKEMBALIKAN || status == StatusItem.DISERAHKAN;
+>>>>>>> ca2e27ff81bd0eaf0f0496ef3f356f4006abcbb8:src/main/java/com/campusfind/model/Item.java
     }
 
     @Override

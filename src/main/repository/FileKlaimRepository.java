@@ -24,6 +24,7 @@ public class FileKlaimRepository implements KlaimRepository {
         this.dataStore = dataStore;
     }
 
+    @SuppressWarnings("deprecation")
     private boolean isAktif(StatusKlaim status) {
         return status == StatusKlaim.DIAJUKAN
                 || status == StatusKlaim.MENUNGGU_VERIFIKASI

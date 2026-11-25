@@ -6,7 +6,6 @@ import com.campusfind.ui.theme.Theme;
 import javax.swing.Icon;
 import javax.swing.JTextField;
 import java.awt.BasicStroke;
-import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;

@@ -19,7 +19,6 @@ import com.campusfind.service.CandidateMatchingStrategy;
 import com.campusfind.service.ItemService;
 import com.campusfind.service.KandidatNotifier;
 import com.campusfind.service.NotificationService;
-import com.campusfind.service.PosService;
 import com.campusfind.service.WeightedAttributeStrategy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -31,7 +30,6 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 

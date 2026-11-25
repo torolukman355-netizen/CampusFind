@@ -1,10 +1,9 @@
 package com.campusfind.model;
 
-import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-public class BarangElektronik extends Item implements Serializable {
+public class BarangElektronik extends Item {
 
     private static final long serialVersionUID = 1L;
 
@@ -28,5 +27,24 @@ public class BarangElektronik extends Item implements Serializable {
 
     public String getNomorSeri() {
         return nomorSeri;
+    }
+
+    @Override
+    public String tampilkanDetail() {
+        String pelaporInfo = (getPelapor() != null)
+                ? getPelapor().getNama() + " (" + getPelapor().getNomorIdentitas() + ")"
+                : "-";
+        return "=== DETAIL BARANG ELEKTRONIK (US-008) ===\n" +
+                "ID Barang       : " + getId() + "\n" +
+                "Jenis Laporan   : " + getJenis().name() + "\n" +
+                "Nama Barang     : " + getNama() + "\n" +
+                "Kategori        : " + getKategori().getLabel() + "\n" +
+                "Merk / Brand    : " + (merek != null && !merek.isBlank() ? merek : "-") + "\n" +
+                "Nomor Seri (SN) : " + (nomorSeri != null && !nomorSeri.isBlank() ? nomorSeri : "-") + " [RAHASIA PETUGAS: Verifikasi Klaim]\n" +
+                "Lokasi Kejadian : " + getLokasiKejadian() + "\n" +
+                "Tanggal Kejadian: " + getTanggalKejadian() + "\n" +
+                "Ciri Khusus     : " + (getCiriRahasia() != null && !getCiriRahasia().isBlank() ? getCiriRahasia() : "-") + "\n" +
+                "Pelapor         : " + pelaporInfo + "\n" +
+                "Status Barang   : " + getStatus().getLabel() + (isTerkunci() ? " [TERKUNCI]" : "");
     }
 }

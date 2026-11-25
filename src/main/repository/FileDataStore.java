@@ -151,6 +151,7 @@ public class FileDataStore {
         }
     }
 
+    @SuppressWarnings("deprecation")
     private void load() {
         lock.lock();
         try {

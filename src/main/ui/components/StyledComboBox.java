@@ -7,7 +7,6 @@ import com.campusfind.ui.theme.Theme;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
-import javax.swing.JComponent;
 import javax.swing.JList;
 import javax.swing.plaf.basic.BasicComboBoxUI;
 import java.awt.BasicStroke;
