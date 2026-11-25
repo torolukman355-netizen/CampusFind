@@ -8,13 +8,7 @@ import java.io.Serializable;
  */
 public enum KategoriBarang implements Serializable {
     ELEKTRONIK("Elektronik"),
-    NON_ELEKTRONIK("Non-Elektronik"),
-    KUNCI_KENDARAAN("Kunci & Kendaraan"),
-    DOKUMEN_KARTU("Dokumen & Kartu"),
-    TAS_DOMPET("Tas & Dompet"),
-    PAKAIAN_AKSESORIS("Pakaian & Aksesoris"),
-    ALAT_TULIS_BUKU("Alat Tulis & Buku"),
-    LAINNYA("Lainnya");
+    NON_ELEKTRONIK("Non-Elektronik");
 
     private final String label;
 

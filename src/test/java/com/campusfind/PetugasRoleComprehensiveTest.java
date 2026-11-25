@@ -113,7 +113,7 @@ public class PetugasRoleComprehensiveTest {
 
         Item dompet = new BarangNonElektronik(
                 "H-888", JenisLaporan.HILANG, "Dompet Kulit Coklat",
-                KategoriBarang.TAS_DOMPET, "Tertinggal di kantin",
+                KategoriBarang.NON_ELEKTRONIK, "Tertinggal di kantin",
                 "Kantin Pusat", LocalDate.now(), null, null, "Sobekan kecil",
                 StatusItem.DILAPORKAN, LocalDateTime.now(), mhsPelapor,
                 "Coklat", "Kulit Sintetis"
@@ -165,7 +165,7 @@ public class PetugasRoleComprehensiveTest {
     void testVerifikasiLaporanTolakWajibAlasan() {
         Item temuanPalsu = new BarangNonElektronik(
                 "T-999", JenisLaporan.TEMUAN, "Uang 1 Miliar",
-                KategoriBarang.LAINNYA, "Laporan iseng",
+                KategoriBarang.NON_ELEKTRONIK, "Laporan iseng",
                 "Gazebo", LocalDate.now(), "POS-0001", null, null,
                 StatusItem.DILAPORKAN, LocalDateTime.now(), mhsPelapor,
                 "Hijau", "Kertas"
@@ -225,14 +225,14 @@ public class PetugasRoleComprehensiveTest {
     void testManajemenLokasiSimpanKhususTemuan() {
         Item temuan = new BarangNonElektronik(
                 "T-020", JenisLaporan.TEMUAN, "Kunci Motor Honda",
-                KategoriBarang.KUNCI_KENDARAAN, "Ditemukan di parkiran",
+                KategoriBarang.NON_ELEKTRONIK, "Ditemukan di parkiran",
                 "Parkir Barat", LocalDate.now(), "POS-0001", null, null,
                 StatusItem.TERSEDIA, LocalDateTime.now(), mhsPelapor,
                 "Hitam", "Besi"
         );
         Item hilang = new BarangNonElektronik(
                 "H-021", JenisLaporan.HILANG, "Kunci Motor Yamaha",
-                KategoriBarang.KUNCI_KENDARAAN, "Hilang di parkiran",
+                KategoriBarang.NON_ELEKTRONIK, "Hilang di parkiran",
                 "Parkir Barat", LocalDate.now(), null, null, null,
                 StatusItem.DICARI, LocalDateTime.now(), mhsPelapor,
                 "Hitam", "Besi"
@@ -255,7 +255,7 @@ public class PetugasRoleComprehensiveTest {
     void testPersetujuanKlaimOtomatisTolakKlaimLain() {
         Item itemTemuan = new BarangNonElektronik(
                 "T-030", JenisLaporan.TEMUAN, "Jaket Varsity Biru",
-                KategoriBarang.PAKAIAN_AKSESORIS, "Tertinggal di kantin",
+                KategoriBarang.NON_ELEKTRONIK, "Tertinggal di kantin",
                 "Kantin", LocalDate.now(), "POS-0001", null, null,
                 StatusItem.TERSEDIA, LocalDateTime.now(), mhsPelapor,
                 "Biru Putih", "Fleece"

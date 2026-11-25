@@ -277,7 +277,7 @@ public class PetugasService {
         // 2. Laporan Hilang Baru (DILAPORKAN) -> Siap diverifikasi di Tab 1
         Item h102 = new BarangNonElektronik(
                 "H-102", JenisLaporan.HILANG, "Dompet Kulit Braun Buffel Coklat",
-                KategoriBarang.TAS_DOMPET, "Tertinggal di meja kasir setelah bayar makan siang",
+                KategoriBarang.NON_ELEKTRONIK, "Tertinggal di meja kasir setelah bayar makan siang",
                 "Kantin Pusat", LocalDate.now(), null, null, "Ada sobekan kecil di saku koin",
                 StatusItem.DILAPORKAN, LocalDateTime.now().minusHours(2), mhsSiti,
                 "Coklat Gelap", "Kulit Sapi"
@@ -310,7 +310,7 @@ public class PetugasService {
         // 4. Barang Temuan dengan Antrean Klaim (TERSEDIA) -> Tab 2
         Item t055 = new BarangNonElektronik(
                 "T-055", JenisLaporan.TEMUAN, "Tumbler Corkcicle Canteen Cobalt 750ml",
-                KategoriBarang.PAKAIAN_AKSESORIS, "Tumbler biru metalik tertinggal di meja baca lantai 2 perpustakaan",
+                KategoriBarang.NON_ELEKTRONIK, "Tumbler biru metalik tertinggal di meja baca lantai 2 perpustakaan",
                 "Perpustakaan Pusat Lt. 2", LocalDate.now().minusDays(2), "POS-0001", null, "Penyok halus di bagian bawah",
                 StatusItem.TERSEDIA, LocalDateTime.now().minusDays(2), mhsAgnes,
                 "Cobalt Blue", "Stainless Steel"
