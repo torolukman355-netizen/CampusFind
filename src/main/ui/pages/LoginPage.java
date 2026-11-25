@@ -27,6 +27,7 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GridBagConstraints;
@@ -55,6 +56,9 @@ public class LoginPage extends JPanel {
 
     private CardLayout rightCardLayout;
     private JPanel rightCardContainer;
+    private JPanel loginCard;
+    private JPanel registerCard;
+    private boolean isShowingRegister = false;
 
     // Login Form Components
     private CustomInputField emailField;
@@ -214,7 +218,7 @@ public class LoginPage extends JPanel {
         rightPanel.setBackground(RIGHT_PANEL_BG);
 
         // Card Container
-        JPanel loginCard = new JPanel() {
+        loginCard = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
@@ -239,9 +243,9 @@ public class LoginPage extends JPanel {
         };
         loginCard.setLayout(new BoxLayout(loginCard, BoxLayout.Y_AXIS));
         loginCard.setOpaque(false);
-        loginCard.setPreferredSize(new Dimension(440, 390));
-        loginCard.setMaximumSize(new Dimension(460, 430));
-        loginCard.setBorder(new EmptyBorder(36, 36, 32, 36));
+        loginCard.setPreferredSize(new Dimension(420, 395));
+        loginCard.setMaximumSize(new Dimension(440, 410));
+        loginCard.setBorder(new EmptyBorder(32, 34, 28, 34));
 
         // Title & Subtitle
         JLabel cardTitle = new JLabel("Masuk");
@@ -269,7 +273,7 @@ public class LoginPage extends JPanel {
 
         loginCard.add(Box.createVerticalStrut(6));
 
-        emailField = new CustomInputField("budi@student.kampus.ac", new EnvelopeIcon(18, new Color(0x94, 0xA3, 0xB8)));
+        emailField = new CustomInputField("", "nama@kampus.ac", new EnvelopeIcon(18, new Color(0x94, 0xA3, 0xB8)));
         emailField.setAlignmentX(Component.LEFT_ALIGNMENT);
         loginCard.add(emailField);
 
@@ -295,14 +299,14 @@ public class LoginPage extends JPanel {
 
         loginCard.add(Box.createVerticalStrut(6));
 
-        passwordField = new CustomPasswordField("••••••••••••", new LockIcon(18, new Color(0x94, 0xA3, 0xB8)));
+        passwordField = new CustomPasswordField("", "Masukkan kata sandi", new LockIcon(18, new Color(0x94, 0xA3, 0xB8)));
         passwordField.setAlignmentX(Component.LEFT_ALIGNMENT);
         loginCard.add(passwordField);
 
         loginCard.add(Box.createVerticalStrut(20));
 
         // Masuk Button (Full Width, Indigo)
-        masukButton = new JButton("Masuk  (Enter)", new LoginArrowIcon(18, Color.WHITE)) {
+        masukButton = new JButton("Masuk", new LoginArrowIcon(18, Color.WHITE)) {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
@@ -379,10 +383,20 @@ public class LoginPage extends JPanel {
         loginCard.add(regPromptRow);
 
         // Register Card setup
-        JPanel registerCard = createRegisterCard();
+        registerCard = createRegisterCard();
 
         rightCardLayout = new CardLayout();
-        rightCardContainer = new JPanel(rightCardLayout);
+        rightCardContainer = new JPanel(rightCardLayout) {
+            @Override
+            public Dimension getPreferredSize() {
+                if (isShowingRegister && registerCard != null) {
+                    return registerCard.getPreferredSize();
+                } else if (loginCard != null) {
+                    return loginCard.getPreferredSize();
+                }
+                return super.getPreferredSize();
+            }
+        };
         rightCardContainer.setOpaque(false);
         rightCardContainer.add(loginCard, "LOGIN");
         rightCardContainer.add(registerCard, "REGISTER");
@@ -393,8 +407,11 @@ public class LoginPage extends JPanel {
     }
 
     public void showLoginCard() {
+        isShowingRegister = false;
         if (rightCardLayout != null && rightCardContainer != null) {
             rightCardLayout.show(rightCardContainer, "LOGIN");
+            rightCardContainer.revalidate();
+            rightCardContainer.repaint();
             if (emailField != null) {
                 emailField.requestFocusInWindow();
             }
@@ -402,8 +419,11 @@ public class LoginPage extends JPanel {
     }
 
     public void showRegisterCard() {
+        isShowingRegister = true;
         if (rightCardLayout != null && rightCardContainer != null) {
             rightCardLayout.show(rightCardContainer, "REGISTER");
+            rightCardContainer.revalidate();
+            rightCardContainer.repaint();
             if (regNamaField != null) {
                 regNamaField.requestFocusInWindow();
             }
@@ -491,7 +511,7 @@ public class LoginPage extends JPanel {
         card.add(lblNama);
         card.add(Box.createVerticalStrut(3));
 
-        regNamaField = new CustomInputField("", new UserMiniIcon(16, new Color(0x94, 0xA3, 0xB8)));
+        regNamaField = new CustomInputField("", "Nama lengkap mahasiswa", new UserMiniIcon(16, new Color(0x94, 0xA3, 0xB8)));
         regNamaField.setAlignmentX(Component.LEFT_ALIGNMENT);
         regNamaField.setPreferredSize(new Dimension(368, 38));
         card.add(regNamaField);
@@ -506,7 +526,7 @@ public class LoginPage extends JPanel {
         card.add(lblNim);
         card.add(Box.createVerticalStrut(3));
 
-        regNimField = new CustomInputField("", new IdCardMiniIcon(16, new Color(0x94, 0xA3, 0xB8)));
+        regNimField = new CustomInputField("", "9 digit NIM", new IdCardMiniIcon(16, new Color(0x94, 0xA3, 0xB8)));
         regNimField.setAlignmentX(Component.LEFT_ALIGNMENT);
         regNimField.setPreferredSize(new Dimension(368, 38));
         card.add(regNimField);
@@ -521,7 +541,7 @@ public class LoginPage extends JPanel {
         card.add(lblEmail);
         card.add(Box.createVerticalStrut(3));
 
-        regEmailField = new CustomInputField("", new EnvelopeIcon(16, new Color(0x94, 0xA3, 0xB8)));
+        regEmailField = new CustomInputField("", "nama@student.kampus.ac", new EnvelopeIcon(16, new Color(0x94, 0xA3, 0xB8)));
         regEmailField.setAlignmentX(Component.LEFT_ALIGNMENT);
         regEmailField.setPreferredSize(new Dimension(368, 38));
         card.add(regEmailField);
@@ -536,7 +556,7 @@ public class LoginPage extends JPanel {
         card.add(lblPass);
         card.add(Box.createVerticalStrut(3));
 
-        regPasswordField = new CustomPasswordField("", new LockIcon(16, new Color(0x94, 0xA3, 0xB8)));
+        regPasswordField = new CustomPasswordField("", "Minimal 6 karakter", new LockIcon(16, new Color(0x94, 0xA3, 0xB8)));
         regPasswordField.setAlignmentX(Component.LEFT_ALIGNMENT);
         regPasswordField.setPreferredSize(new Dimension(368, 38));
         card.add(regPasswordField);
@@ -551,7 +571,7 @@ public class LoginPage extends JPanel {
         card.add(lblConfirm);
         card.add(Box.createVerticalStrut(3));
 
-        regConfirmPasswordField = new CustomPasswordField("", new LockIcon(16, new Color(0x94, 0xA3, 0xB8)));
+        regConfirmPasswordField = new CustomPasswordField("", "Ulangi kata sandi", new LockIcon(16, new Color(0x94, 0xA3, 0xB8)));
         regConfirmPasswordField.setAlignmentX(Component.LEFT_ALIGNMENT);
         regConfirmPasswordField.setPreferredSize(new Dimension(368, 38));
         card.add(regConfirmPasswordField);
@@ -828,11 +848,17 @@ public class LoginPage extends JPanel {
     // -----------------------------------------------------------------
     private static class CustomInputField extends JTextField {
         private final Icon leadingIcon;
+        private final String placeholder;
         private boolean error = false;
         private boolean focused = false;
 
         public CustomInputField(String text, Icon leadingIcon) {
+            this(text, "", leadingIcon);
+        }
+
+        public CustomInputField(String text, String placeholder, Icon leadingIcon) {
             super(text);
+            this.placeholder = placeholder != null ? placeholder : "";
             this.leadingIcon = leadingIcon;
             init();
         }
@@ -841,9 +867,10 @@ public class LoginPage extends JPanel {
             setFont(Fonts.sans(13.5f, Font.PLAIN));
             setForeground(TEXT_DARK);
             setOpaque(false);
+            setBorder(new EmptyBorder(8, 42, 8, 12));
+            setCaretColor(PRIMARY_INDIGO);
             setPreferredSize(new Dimension(368, 44));
             setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
-            setMargin(new Insets(8, 40, 8, 12));
 
             addFocusListener(new FocusListener() {
                 @Override
@@ -876,39 +903,64 @@ public class LoginPage extends JPanel {
 
             // Background
             g2.setColor(Color.WHITE);
-            g2.fill(new RoundRectangle2D.Float(0, 0, w - 1, h - 1, r, r));
+            g2.fill(new RoundRectangle2D.Float(1, 1, w - 2, h - 2, r, r));
+            g2.dispose();
+
+            super.paintComponent(g);
+
+            Graphics2D g3 = (Graphics2D) g.create();
+            g3.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
             // Leading Icon
             if (leadingIcon != null) {
                 int iconY = (h - leadingIcon.getIconHeight()) / 2;
-                leadingIcon.paintIcon(this, g2, 14, iconY);
+                leadingIcon.paintIcon(this, g3, 14, iconY);
             }
 
-            // Border
+            // Placeholder Text
+            if (getText().isEmpty() && !focused && !placeholder.isEmpty()) {
+                g3.setColor(new Color(0x94, 0xA3, 0xB8));
+                g3.setFont(getFont());
+                FontMetrics fm = g3.getFontMetrics();
+                int textY = (h - fm.getHeight()) / 2 + fm.getAscent();
+                g3.drawString(placeholder, 42, textY);
+            }
+
+            // Smooth Rounded Border
             if (error) {
-                g2.setColor(ERROR_RED);
-                g2.setStroke(new BasicStroke(1.5f));
+                g3.setColor(ERROR_RED);
+                g3.setStroke(new BasicStroke(1.5f));
             } else if (focused) {
-                g2.setColor(PRIMARY_INDIGO);
-                g2.setStroke(new BasicStroke(1.5f));
+                g3.setColor(PRIMARY_INDIGO);
+                g3.setStroke(new BasicStroke(1.8f));
             } else {
-                g2.setColor(new Color(0xCB, 0xD5, 0xE1));
-                g2.setStroke(new BasicStroke(1.0f));
+                g3.setColor(new Color(0xD1, 0xD5, 0xDB));
+                g3.setStroke(new BasicStroke(1.0f));
             }
-            g2.draw(new RoundRectangle2D.Float(0, 0, w - 1, h - 1, r, r));
+            g3.draw(new RoundRectangle2D.Float(1, 1, w - 2, h - 2, r, r));
 
-            g2.dispose();
-            super.paintComponent(g);
+            g3.dispose();
+        }
+
+        @Override
+        protected void paintBorder(Graphics g) {
+            // Suppress default LookAndFeel border
         }
     }
 
     private static class CustomPasswordField extends JPasswordField {
         private final Icon leadingIcon;
+        private final String placeholder;
         private boolean error = false;
         private boolean focused = false;
 
         public CustomPasswordField(String text, Icon leadingIcon) {
+            this(text, "", leadingIcon);
+        }
+
+        public CustomPasswordField(String text, String placeholder, Icon leadingIcon) {
             super(text);
+            this.placeholder = placeholder != null ? placeholder : "";
             this.leadingIcon = leadingIcon;
             init();
         }
@@ -917,9 +969,10 @@ public class LoginPage extends JPanel {
             setFont(Fonts.sans(13.5f, Font.PLAIN));
             setForeground(TEXT_DARK);
             setOpaque(false);
+            setBorder(new EmptyBorder(8, 42, 8, 12));
+            setCaretColor(PRIMARY_INDIGO);
             setPreferredSize(new Dimension(368, 44));
             setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
-            setMargin(new Insets(8, 40, 8, 12));
 
             addFocusListener(new FocusListener() {
                 @Override
@@ -952,29 +1005,48 @@ public class LoginPage extends JPanel {
 
             // Background
             g2.setColor(Color.WHITE);
-            g2.fill(new RoundRectangle2D.Float(0, 0, w - 1, h - 1, r, r));
+            g2.fill(new RoundRectangle2D.Float(1, 1, w - 2, h - 2, r, r));
+            g2.dispose();
+
+            super.paintComponent(g);
+
+            Graphics2D g3 = (Graphics2D) g.create();
+            g3.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
             // Leading Icon
             if (leadingIcon != null) {
                 int iconY = (h - leadingIcon.getIconHeight()) / 2;
-                leadingIcon.paintIcon(this, g2, 14, iconY);
+                leadingIcon.paintIcon(this, g3, 14, iconY);
             }
 
-            // Border
+            // Placeholder Text
+            if (getPassword().length == 0 && !focused && !placeholder.isEmpty()) {
+                g3.setColor(new Color(0x94, 0xA3, 0xB8));
+                g3.setFont(getFont());
+                FontMetrics fm = g3.getFontMetrics();
+                int textY = (h - fm.getHeight()) / 2 + fm.getAscent();
+                g3.drawString(placeholder, 42, textY);
+            }
+
+            // Smooth Rounded Border
             if (error) {
-                g2.setColor(ERROR_RED);
-                g2.setStroke(new BasicStroke(1.5f));
+                g3.setColor(ERROR_RED);
+                g3.setStroke(new BasicStroke(1.5f));
             } else if (focused) {
-                g2.setColor(PRIMARY_INDIGO);
-                g2.setStroke(new BasicStroke(1.5f));
+                g3.setColor(PRIMARY_INDIGO);
+                g3.setStroke(new BasicStroke(1.8f));
             } else {
-                g2.setColor(new Color(0xCB, 0xD5, 0xE1));
-                g2.setStroke(new BasicStroke(1.0f));
+                g3.setColor(new Color(0xD1, 0xD5, 0xDB));
+                g3.setStroke(new BasicStroke(1.0f));
             }
-            g2.draw(new RoundRectangle2D.Float(0, 0, w - 1, h - 1, r, r));
+            g3.draw(new RoundRectangle2D.Float(1, 1, w - 2, h - 2, r, r));
 
-            g2.dispose();
-            super.paintComponent(g);
+            g3.dispose();
+        }
+
+        @Override
+        protected void paintBorder(Graphics g) {
+            // Suppress default LookAndFeel border
         }
     }
 
