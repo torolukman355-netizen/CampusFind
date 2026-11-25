@@ -1,5 +1,8 @@
 package com.campusfind;
 
+import com.campusfind.exception.AksesDitolakException;
+import com.campusfind.exception.NotFoundException;
+import com.campusfind.exception.ValidationException;
 import com.campusfind.model.Admin;
 import com.campusfind.model.BarangElektronik;
 import com.campusfind.model.BarangNonElektronik;
@@ -17,10 +20,12 @@ import com.campusfind.repository.FileDataStore;
 import com.campusfind.repository.FileItemRepository;
 import com.campusfind.repository.FileKlaimRepository;
 import com.campusfind.repository.FileNotificationRepository;
+import com.campusfind.repository.FilePetugasAuditRepository;
 import com.campusfind.repository.FilePosRepository;
 import com.campusfind.repository.ItemRepository;
 import com.campusfind.repository.KlaimRepository;
 import com.campusfind.repository.NotificationRepository;
+import com.campusfind.repository.PetugasAuditRepository;
 import com.campusfind.repository.PosRepository;
 import com.campusfind.service.ItemService;
 import com.campusfind.service.KlaimService;
@@ -45,10 +50,10 @@ import java.time.LocalDateTime;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Suite pengujian komprehensif untuk Fitur Utama Role Petugas (Bintang, Jepin, Fakhri):
+ * Suite pengujian komprehensif untuk Fitur Utama Role Petugas:
  * - US-001 s.d. US-008: OOP Polimorfisme & Hak Akses
  * - US-010 & US-028   : Dashboard Antrean Kerja
- * - US-011 & US-028   : Verifikasi Laporan Masuk
+ * - US-011 & US-028   : Verifikasi Laporan Masuk & Penolakan
  * - US-012            : Kontrol Transisi Status Berurutan & Logging Audit
  * - US-013            : Manajemen Lokasi Penyimpanan Fisik (Khusus Temuan)
  * - US-015            : Konfirmasi Status Smart Matching
@@ -65,6 +70,7 @@ public class PetugasRoleComprehensiveTest {
     private KlaimRepository klaimRepository;
     private PosRepository posRepository;
     private NotificationRepository notificationRepository;
+    private PetugasAuditRepository auditRepository;
 
     private ItemService itemService;
     private KlaimService klaimService;
@@ -84,6 +90,7 @@ public class PetugasRoleComprehensiveTest {
         klaimRepository = new FileKlaimRepository(dataStore);
         posRepository = new FilePosRepository(dataStore);
         notificationRepository = new FileNotificationRepository(dataStore);
+        auditRepository = new FilePetugasAuditRepository(dataStore);
 
         Clock clock = Clock.systemDefaultZone();
         MatchingStrategy matchingStrategy = new TokenOverlapStrategy();
@@ -92,7 +99,7 @@ public class PetugasRoleComprehensiveTest {
         klaimService = new KlaimService(klaimRepository, itemRepository, posRepository, notificationRepository, matchingStrategy, clock);
         notificationService = new NotificationService(notificationRepository);
         qrCodeService = new QRCodeService();
-        petugasService = new PetugasService(itemRepository, posRepository, notificationService, qrCodeService);
+        petugasService = new PetugasService(itemRepository, posRepository, notificationService, qrCodeService, auditRepository);
 
         petugasBintang = new Petugas("Bintang (Petugas)", "199504122020121001");
         mhsPelapor = new Mahasiswa("Rama", "230001001");
@@ -125,7 +132,6 @@ public class PetugasRoleComprehensiveTest {
         assertNotNull(detailLaptop);
         assertNotNull(detailDompet);
 
-        // Verifikasi output polimorfik spesifik
         assertTrue(detailLaptop.contains("Apple"), "Detail elektronik memuat merek");
         assertTrue(detailLaptop.contains("SN-MAC123456"), "Detail elektronik memuat nomor seri rahasia");
         assertTrue(detailLaptop.contains("RAHASIA PETUGAS"), "Detail elektronik mencantumkan penanda rahasia");
@@ -148,21 +154,19 @@ public class PetugasRoleComprehensiveTest {
 
         assertEquals(StatusItem.DILAPORKAN, temuan.getStatus());
 
-        // Aksi Petugas: Terima Laporan
         petugasService.verifikasiLaporan("T-001", true, null, petugasBintang);
 
         Item verified = itemRepository.findById("T-001").orElseThrow();
         assertEquals(StatusItem.TERSEDIA, verified.getStatus(), "Status temuan terverifikasi menjadi TERSEDIA");
 
-        // Verifikasi kode QR otomatis dibuat untuk barang Temuan
         String qr = petugasService.getKodeQR(verified);
         assertNotNull(qr);
         assertTrue(qr.startsWith("QR-T-001"));
     }
 
     @Test
-    @DisplayName("US-011: Penolakan Laporan Masuk Wajib Mengisi Alasan Tertulis")
-    void testVerifikasiLaporanTolakWajibAlasan() {
+    @DisplayName("US-011: Penolakan Laporan Masuk Wajib Mengisi Alasan & Otorisasi Hak Akses")
+    void testVerifikasiLaporanTolakWajibAlasanDanOtorisasi() {
         Item temuanPalsu = new BarangNonElektronik(
                 "T-999", JenisLaporan.TEMUAN, "Uang 1 Miliar",
                 KategoriBarang.NON_ELEKTRONIK, "Laporan iseng",
@@ -172,16 +176,19 @@ public class PetugasRoleComprehensiveTest {
         );
         itemRepository.save(temuanPalsu);
 
-        // Tolak tanpa alasan -> Harus gagal melempar IllegalArgumentException
-        assertThrows(IllegalArgumentException.class, () ->
+        // Mahasiswa tanpa hak akses verifikasi -> Harus lempar AksesDitolakException
+        assertThrows(AksesDitolakException.class, () ->
+                petugasService.verifikasiLaporan("T-999", true, null, mhsPelapor));
+
+        // Tolak tanpa alasan -> Harus gagal melempar ValidationException
+        assertThrows(ValidationException.class, () ->
                 petugasService.verifikasiLaporan("T-999", false, "  ", petugasBintang));
 
-        // Tolak dengan alasan sah -> Berhasil
+        // Tolak dengan alasan sah -> Berhasil & status menjadi DITOLAK
         petugasService.verifikasiLaporan("T-999", false, "Laporan palsu / tidak dapat diverifikasi", petugasBintang);
 
-        assertNotNull(itemService);
         Item rejected = itemRepository.findById("T-999").orElseThrow();
-        assertNotNull(rejected);
+        assertEquals(StatusItem.DITOLAK, rejected.getStatus());
         assertTrue(petugasService.getRiwayatLog("T-999").contains("DITOLAK"));
     }
 
@@ -196,6 +203,10 @@ public class PetugasRoleComprehensiveTest {
                 "Apple", "SN-IPAD772"
         );
         itemRepository.save(item);
+
+        // Coba lompat dari DILAPORKAN langsung ke DIKLAIM -> Wajib ditolak
+        assertThrows(ValidationException.class, () ->
+                petugasService.ubahStatusBarang("T-010", StatusItem.DIKLAIM, petugasBintang));
 
         // 1. DILAPORKAN -> TERSEDIA (Diverifikasi)
         petugasService.verifikasiLaporan("T-010", true, null, petugasBintang);
@@ -216,7 +227,7 @@ public class PetugasRoleComprehensiveTest {
         assertTrue(finalItem.isTerkunci(), "Data barang harus terkunci permanen");
 
         // 5. Coba ubah status saat sudah terkunci -> Wajib ditolak
-        assertThrows(IllegalStateException.class, () ->
+        assertThrows(ValidationException.class, () ->
                 petugasService.ubahStatusBarang("T-010", StatusItem.TERSEDIA, petugasBintang));
     }
 
@@ -240,12 +251,10 @@ public class PetugasRoleComprehensiveTest {
         itemRepository.save(temuan);
         itemRepository.save(hilang);
 
-        // Atur lokasi simpan pada barang TEMUAN -> Berhasil
         petugasService.aturLokasiPenyimpanan("T-020", "Loker B-2 Ruang Satpam", petugasBintang);
         assertEquals("Loker B-2 Ruang Satpam", petugasService.getLokasiSimpan(itemRepository.findById("T-020").orElseThrow()));
 
-        // Atur lokasi simpan pada barang HILANG -> Wajib ditolak (IllegalArgumentException)
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+        ValidationException ex = assertThrows(ValidationException.class, () ->
                 petugasService.aturLokasiPenyimpanan("H-021", "Loker A-1", petugasBintang));
         assertTrue(ex.getMessage().contains("TEMUAN"), "Pesan error menjelaskan hanya untuk temuan");
     }
@@ -277,27 +286,34 @@ public class PetugasRoleComprehensiveTest {
         klaimRepository.save(klaim1);
         klaimRepository.save(klaim2);
 
-        // Petugas menyetujui klaim1
         klaimService.setujui("CLM-001", petugasBintang);
 
-        // Verifikasi klaim 1 DISETUJUI
         Klaim k1Hasil = klaimRepository.findById("CLM-001").orElseThrow();
         assertEquals(StatusKlaim.DISETUJUI, k1Hasil.getStatus());
 
-        // Verifikasi klaim 2 otomatis DITOLAK
         Klaim k2Hasil = klaimRepository.findById("CLM-002").orElseThrow();
         assertEquals(StatusKlaim.DITOLAK, k2Hasil.getStatus());
         assertTrue(k2Hasil.getCatatanPetugas().contains("telah disetujui"), "Catatan otomatis penolakan klaim lain");
 
-        // Status barang menjadi DALAM_PROSES_KLAIM
         Item itemTerkunci = itemRepository.findById("T-030").orElseThrow();
         assertEquals(StatusItem.DALAM_PROSES_KLAIM, itemTerkunci.getStatus());
     }
 
     @Test
-    @DisplayName("US-017 & US-018: Pembuatan, Penyimpanan File, dan Dekode Gambar QR Code")
+    @DisplayName("US-017 & US-018: Pembuatan, Penyimpanan File, Dekode Gambar, & Pencarian QR Code")
     void testQRCodeGenerationDanDecoding() throws IOException {
-        String kode = "QR-ARC-0099";
+        Item temuan = new BarangNonElektronik(
+                "T-050", JenisLaporan.TEMUAN, "Botol Corkcicle Hitam",
+                KategoriBarang.NON_ELEKTRONIK, "Tertinggal di kelas",
+                "Gedung C", LocalDate.now(), "POS-0001", null, null,
+                StatusItem.TERSEDIA, LocalDateTime.now(), mhsPelapor,
+                "Hitam", "Stainless"
+        );
+        itemRepository.save(temuan);
+
+        String kode = petugasService.getKodeQR(temuan);
+        assertEquals("QR-T-050", kode);
+
         BufferedImage image = qrCodeService.generateQRImage(kode, 200, 200);
         assertNotNull(image);
 
@@ -306,9 +322,15 @@ public class PetugasRoleComprehensiveTest {
         assertTrue(saved.exists());
         assertTrue(saved.length() > 0);
 
-        // Dekode kembali file gambar QR menggunakan ZXing
         String decoded = qrCodeService.decodeQRFromFile(saved);
         assertEquals(kode, decoded, "Teks hasil dekode QR sesuai kode awal");
+
+        // Pencarian barang via kode QR valid
+        Item found = petugasService.cariBarangByQR(decoded);
+        assertEquals("T-050", found.getId());
+
+        // Pencarian via kode QR tidak valid -> NotFoundException
+        assertThrows(NotFoundException.class, () -> petugasService.cariBarangByQR("QR-TIDAK-ADA"));
     }
 
     @Test
@@ -318,23 +340,19 @@ public class PetugasRoleComprehensiveTest {
         Mahasiswa m = new Mahasiswa("Rama", "NIM01");
         Admin a = new Admin("Lukman", "ADM01");
 
-        // Petugas punya akses operasional pos
         assertTrue(p.punyaAkses(HakAkses.VERIFIKASI_LAPORAN));
         assertTrue(p.punyaAkses(HakAkses.KELOLA_LOKASI_SIMPAN));
         assertTrue(p.punyaAkses(HakAkses.KEPUTUSAN_KLAIM));
         assertTrue(p.punyaAkses(HakAkses.SERAH_TERIMA_BARANG));
         assertTrue(p.punyaAkses(HakAkses.LIHAT_SEMUA_BARANG));
 
-        // Mahasiswa TIDAK punya akses operasional pos atau manajemen
         assertFalse(m.punyaAkses(HakAkses.VERIFIKASI_LAPORAN));
         assertFalse(m.punyaAkses(HakAkses.KELOLA_LOKASI_SIMPAN));
         assertFalse(m.punyaAkses(HakAkses.LIHAT_SEMUA_BARANG));
 
-        // Mahasiswa punya hak lapor dan klaim
         assertTrue(m.punyaAkses(HakAkses.BUAT_LAPORAN));
         assertTrue(m.punyaAkses(HakAkses.KLAIM_BARANG));
 
-        // Admin punya akses penuh manajemen & statistik
         assertTrue(a.punyaAkses(HakAkses.LIHAT_SEMUA_BARANG));
         assertTrue(a.punyaAkses(HakAkses.MANAJEMEN_PENGGUNA));
         assertTrue(a.punyaAkses(HakAkses.LIHAT_STATISTIK));

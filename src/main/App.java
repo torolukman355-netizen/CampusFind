@@ -51,6 +51,18 @@ public class App {
     private static final Logger LOG = Logger.getLogger(App.class.getName());
 
     public static void main(String[] args) {
+        Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
+            LOG.log(Level.SEVERE, "Terjadi kesalahan tidak terduga pada thread " + thread.getName(), throwable);
+            if (!GraphicsEnvironment.isHeadless()) {
+                SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(
+                        null,
+                        "Terjadi kesalahan sistem yang tidak terduga:\n" + throwable.getMessage(),
+                        "Kesalahan Sistem",
+                        JOptionPane.ERROR_MESSAGE
+                ));
+            }
+        });
+
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception e) {
