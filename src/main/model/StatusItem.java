@@ -3,6 +3,7 @@ package com.campusfind.model;
 public enum StatusItem {
     DILAPORKAN("Dilaporkan"),
     DIVERIFIKASI("Diverifikasi"),
+    DITOLAK("Ditolak"),
     COCOK("Cocok"),
     DICARI("Dicari"),
     TERSEDIA("Tersedia"),
@@ -24,11 +25,11 @@ public enum StatusItem {
     public boolean bolehBerubahKe(StatusItem tujuan) {
         if (tujuan == null || this == tujuan) return false;
         return switch (this) {
-            case DILAPORKAN -> tujuan == DIVERIFIKASI || tujuan == DICARI || tujuan == TERSEDIA;
-            case DIVERIFIKASI, DICARI, TERSEDIA -> tujuan == COCOK || tujuan == DALAM_PROSES_KLAIM || tujuan == DIKLAIM;
-            case COCOK -> tujuan == DALAM_PROSES_KLAIM || tujuan == DIKLAIM;
+            case DILAPORKAN -> tujuan == DIVERIFIKASI || tujuan == DITOLAK;
+            case DIVERIFIKASI, DICARI, TERSEDIA -> tujuan == COCOK || tujuan == DIKLAIM || tujuan == DALAM_PROSES_KLAIM;
+            case COCOK -> tujuan == DIKLAIM || tujuan == DALAM_PROSES_KLAIM;
             case DALAM_PROSES_KLAIM, DIKLAIM -> tujuan == DIKEMBALIKAN || tujuan == DISERAHKAN || tujuan == TERSEDIA;
-            case DIKEMBALIKAN, DISERAHKAN -> false;
+            case DITOLAK, DIKEMBALIKAN, DISERAHKAN -> false;
         };
     }
 
@@ -38,7 +39,7 @@ public enum StatusItem {
             case DIVERIFIKASI, DICARI, TERSEDIA -> COCOK;
             case COCOK -> DIKLAIM;
             case DALAM_PROSES_KLAIM, DIKLAIM -> DIKEMBALIKAN;
-            case DIKEMBALIKAN, DISERAHKAN -> throw new IllegalStateException("Status akhir sudah tercapai dan terkunci.");
+            case DITOLAK, DIKEMBALIKAN, DISERAHKAN -> throw new IllegalStateException("Status akhir sudah tercapai dan terkunci.");
         };
     }
 }

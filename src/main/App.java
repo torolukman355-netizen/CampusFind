@@ -1,9 +1,6 @@
 package com.campusfind;
 
 import com.campusfind.exception.StorageException;
-import com.campusfind.model.Admin;
-import com.campusfind.model.Mahasiswa;
-import com.campusfind.model.Petugas;
 import com.campusfind.repository.DatabaseManager;
 import com.campusfind.repository.DatabaseSchema;
 import com.campusfind.repository.DatabaseSeeder;
@@ -11,16 +8,19 @@ import com.campusfind.repository.FileDataStore;
 import com.campusfind.repository.FileItemRepository;
 import com.campusfind.repository.FileKlaimRepository;
 import com.campusfind.repository.FileNotificationRepository;
+import com.campusfind.repository.FilePetugasAuditRepository;
 import com.campusfind.repository.FilePosRepository;
 import com.campusfind.repository.FileUserRepository;
 import com.campusfind.repository.ItemRepository;
 import com.campusfind.repository.JdbcItemRepository;
 import com.campusfind.repository.JdbcKlaimRepository;
 import com.campusfind.repository.JdbcNotificationRepository;
+import com.campusfind.repository.JdbcPetugasAuditRepository;
 import com.campusfind.repository.JdbcPosRepository;
 import com.campusfind.repository.JdbcUserRepository;
 import com.campusfind.repository.KlaimRepository;
 import com.campusfind.repository.NotificationRepository;
+import com.campusfind.repository.PetugasAuditRepository;
 import com.campusfind.repository.PosRepository;
 import com.campusfind.repository.UserRepository;
 import com.campusfind.service.AppSession;
@@ -62,6 +62,7 @@ public class App {
         PosRepository posRepository;
         NotificationRepository notificationRepository;
         UserRepository userRepository;
+        PetugasAuditRepository petugasAuditRepository;
         String storageWarning = null;
 
         try {
@@ -72,6 +73,7 @@ public class App {
             posRepository = new JdbcPosRepository(databaseManager);
             notificationRepository = new JdbcNotificationRepository(databaseManager);
             userRepository = new JdbcUserRepository(databaseManager);
+            petugasAuditRepository = new JdbcPetugasAuditRepository(databaseManager);
             DatabaseSeeder.seedIfEmpty(posRepository, itemRepository, klaimRepository, notificationRepository, userRepository);
             LOG.info("Penyimpanan data: PostgreSQL " + databaseManager.safeUrl());
         } catch (StorageException e) {
@@ -83,6 +85,7 @@ public class App {
             posRepository = new FilePosRepository(dataStore);
             notificationRepository = new FileNotificationRepository(dataStore);
             userRepository = new FileUserRepository();
+            petugasAuditRepository = new FilePetugasAuditRepository(dataStore);
             DatabaseSeeder.seedIfEmpty(posRepository, itemRepository, klaimRepository, notificationRepository, userRepository);
             storageWarning = "Database tidak dapat dihubungi.\n\n"
                     + e.getMessage()
@@ -109,7 +112,13 @@ public class App {
         PosService posService = new PosService(posRepository);
         NotificationService notificationService = new NotificationService(notificationRepository);
         QRCodeService qrCodeService = new QRCodeService();
-        PetugasService petugasService = new PetugasService(itemRepository, posRepository, notificationService, qrCodeService);
+        PetugasService petugasService = new PetugasService(
+                itemRepository,
+                posRepository,
+                notificationService,
+                qrCodeService,
+                petugasAuditRepository
+        );
 
         CandidateMatchingStrategy candidateMatchingStrategy = new WeightedAttributeStrategy();
         KandidatService kandidatService = new KandidatService(itemRepository, candidateMatchingStrategy);

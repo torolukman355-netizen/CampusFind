@@ -7,7 +7,10 @@ public enum NotificationType {
     KLAIM_DITERIMA("Klaim Diterima"),
     KLAIM_DISETUJUI("Klaim Disetujui"),
     KLAIM_DITOLAK("Klaim Ditolak"),
-    KANDIDAT_COCOK("Kandidat Cocok");
+    KANDIDAT_COCOK("Kandidat Cocok"),
+    LAPORAN_DIVERIFIKASI("Laporan Diverifikasi"),
+    LAPORAN_DITOLAK("Laporan Ditolak"),
+    BARANG_DIKEMBALIKAN("Barang Dikembalikan");
 
     private final String label;
 

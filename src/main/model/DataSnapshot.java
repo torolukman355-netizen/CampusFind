@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 public class DataSnapshot implements Serializable {
@@ -17,6 +18,8 @@ public class DataSnapshot implements Serializable {
     private LinkedHashMap<String, Klaim> klaim;
     private LinkedHashMap<String, PosPenyimpanan> pos;
     private ArrayList<Notification> notifikasi;
+    private LinkedHashMap<String, List<String>> statusLogs;
+    private LinkedHashMap<String, String> serahTerima;
 
     private transient Map<String, String> klaimAktifIndex;
 
@@ -27,6 +30,8 @@ public class DataSnapshot implements Serializable {
         this.klaim = new LinkedHashMap<>();
         this.pos = new LinkedHashMap<>();
         this.notifikasi = new ArrayList<>();
+        this.statusLogs = new LinkedHashMap<>();
+        this.serahTerima = new LinkedHashMap<>();
         this.klaimAktifIndex = new HashMap<>();
     }
 
@@ -76,6 +81,20 @@ public class DataSnapshot implements Serializable {
 
     public ArrayList<Notification> getNotifikasi() {
         return notifikasi;
+    }
+
+    public LinkedHashMap<String, List<String>> getStatusLogs() {
+        if (statusLogs == null) {
+            statusLogs = new LinkedHashMap<>();
+        }
+        return statusLogs;
+    }
+
+    public LinkedHashMap<String, String> getSerahTerima() {
+        if (serahTerima == null) {
+            serahTerima = new LinkedHashMap<>();
+        }
+        return serahTerima;
     }
 
     public Map<String, String> getKlaimAktifIndex() {

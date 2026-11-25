@@ -44,12 +44,17 @@ public enum Role {
                 HakAkses.LIHAT_NOTIFIKASI,
                 HakAkses.VERIFIKASI_LAPORAN,
                 HakAkses.KELOLA_STATUS_ITEM,
+                HakAkses.KONTROL_STATUS,
                 HakAkses.KELOLA_LOKASI_SIMPAN,
                 HakAkses.KONFIRMASI_KANDIDAT,
+                HakAkses.KONFIRMASI_MATCHING,
                 HakAkses.KELOLA_QR_CODE,
                 HakAkses.PUTUSKAN_KLAIM,
+                HakAkses.KEPUTUSAN_KLAIM,
                 HakAkses.SERAH_TERIMA,
-                HakAkses.LIHAT_SEMUA_KLAIM
+                HakAkses.SERAH_TERIMA_BARANG,
+                HakAkses.LIHAT_SEMUA_KLAIM,
+                HakAkses.LIHAT_SEMUA_BARANG
         };
     }
 

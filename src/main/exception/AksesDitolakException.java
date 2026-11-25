@@ -4,7 +4,7 @@ package com.campusfind.exception;
  * Dilempar ketika pengguna tidak memiliki hak akses yang dibutuhkan
  * untuk menjalankan sebuah operasi.
  */
-public class AksesDitolakException extends RuntimeException {
+public class AksesDitolakException extends CampusFindException {
 
     private static final long serialVersionUID = 1L;
 

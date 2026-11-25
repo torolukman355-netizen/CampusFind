@@ -47,14 +47,33 @@ public final class DatabaseSchema {
                 merek                   VARCHAR(150),
                 nomor_seri              VARCHAR(150),
                 warna                   VARCHAR(80),
-                bahan                   VARCHAR(80),
-                foto_bytes              BYTEA,
-                tempat_penitipan        VARCHAR(255)
+                bahan                   VARCHAR(80)
             )
             """,
 
             "ALTER TABLE items ADD COLUMN IF NOT EXISTS foto_bytes BYTEA",
             "ALTER TABLE items ADD COLUMN IF NOT EXISTS tempat_penitipan VARCHAR(255)",
+
+            """
+            CREATE TABLE IF NOT EXISTS status_log (
+                id          VARCHAR(40)  PRIMARY KEY,
+                item_id     VARCHAR(20)  NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+                aksi        VARCHAR(120) NOT NULL,
+                pelaku      VARCHAR(150) NOT NULL,
+                waktu       TIMESTAMP    NOT NULL
+            )
+            """,
+
+            """
+            CREATE TABLE IF NOT EXISTS serah_terima (
+                id            VARCHAR(40)  PRIMARY KEY,
+                item_id       VARCHAR(20)  NOT NULL UNIQUE REFERENCES items(id) ON DELETE CASCADE,
+                nama_penerima VARCHAR(150) NOT NULL,
+                tanggal       DATE         NOT NULL,
+                nip_petugas   VARCHAR(40)  NOT NULL,
+                dibuat_pada   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """,
 
             """
             CREATE TABLE IF NOT EXISTS klaim (
@@ -117,6 +136,8 @@ public final class DatabaseSchema {
             "CREATE INDEX IF NOT EXISTS ix_items_jenis ON items (jenis)",
             "CREATE INDEX IF NOT EXISTS ix_items_status ON items (status)",
             "CREATE INDEX IF NOT EXISTS ix_items_pelapor ON items (pelapor_nomor_identitas)",
+            "CREATE INDEX IF NOT EXISTS ix_status_log_item ON status_log (item_id)",
+            "CREATE INDEX IF NOT EXISTS ix_serah_terima_item ON serah_terima (item_id)",
             "CREATE INDEX IF NOT EXISTS ix_klaim_item ON klaim (item_id)",
             "CREATE INDEX IF NOT EXISTS ix_klaim_pengklaim ON klaim (pengklaim_nomor_identitas)",
             "CREATE INDEX IF NOT EXISTS ix_notifikasi_penerima ON notifications (penerima_nomor_identitas)",

@@ -1,7 +1,11 @@
 package com.campusfind.service;
 
+import com.campusfind.exception.AksesDitolakException;
+import com.campusfind.exception.NotFoundException;
+import com.campusfind.exception.ValidationException;
 import com.campusfind.model.BarangElektronik;
 import com.campusfind.model.BarangNonElektronik;
+import com.campusfind.model.HakAkses;
 import com.campusfind.model.Item;
 import com.campusfind.model.JenisLaporan;
 import com.campusfind.model.KategoriBarang;
@@ -14,6 +18,7 @@ import com.campusfind.model.StatusKlaim;
 import com.campusfind.model.User;
 import com.campusfind.repository.ItemRepository;
 import com.campusfind.repository.KlaimRepository;
+import com.campusfind.repository.PetugasAuditRepository;
 import com.campusfind.repository.PosRepository;
 
 import java.time.LocalDate;
@@ -25,15 +30,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Service pusat untuk seluruh fungsionalitas Role Petugas (Bintang, Jepin, Fakhri):
- * - US-010, US-028: Dashboard Antrean Kerja Petugas
- * - US-011, US-028: Verifikasi Laporan Masuk
- * - US-012: Kontrol Transisi Status Berurutan & Audit Logging
- * - US-013: Manajemen Lokasi Penyimpanan Fisik (Khusus Temuan)
- * - US-015: Konfirmasi Status Kecocokan Smart Matching
- * - US-017, US-018, US-029: Manajemen & Pelacakan QR Code Barang
- * - US-020, US-028: Pemeriksaan & Keputusan Klaim
- * - US-021, US-029: Pencatatan Serah Terima Barang & Penguncian Data
+ * Service pusat untuk seluruh fungsionalitas Role Petugas.
  */
 public class PetugasService {
 
@@ -41,34 +38,44 @@ public class PetugasService {
     private final PosRepository posRepository;
     private final NotificationService notificationService;
     private final QRCodeService qrCodeService;
+    private final PetugasAuditRepository auditRepository;
 
-    private final Map<String, String> qrCodeMap = new ConcurrentHashMap<>();
-    private final Map<String, String> lokasiSimpanMap = new ConcurrentHashMap<>();
-    private final Map<String, List<String>> riwayatStatusMap = new ConcurrentHashMap<>();
+    // Fallback memori hanya dipakai jika konstruktor lama (unit test) dipanggil tanpa auditRepository
+    private final Map<String, List<String>> fallbackLogMap = new ConcurrentHashMap<>();
     private final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     public PetugasService(ItemRepository itemRepository,
                           PosRepository posRepository,
                           NotificationService notificationService,
                           QRCodeService qrCodeService) {
+        this(itemRepository, posRepository, notificationService, qrCodeService, null);
+    }
+
+    public PetugasService(ItemRepository itemRepository,
+                          PosRepository posRepository,
+                          NotificationService notificationService,
+                          QRCodeService qrCodeService,
+                          PetugasAuditRepository auditRepository) {
         this.itemRepository = itemRepository;
         this.posRepository = posRepository;
         this.notificationService = notificationService;
         this.qrCodeService = qrCodeService;
+        this.auditRepository = auditRepository;
     }
 
     /**
      * US-011 & US-028: Verifikasi Laporan Masuk dari Mahasiswa.
-     * Terima: status menjadi DIVERIFIKASI (TERSEDIA/DICARI), generate QR Code jika Temuan.
-     * Tolak: status menjadi DITOLAK/DISERAHKAN, wajib menyertakan alasan tertulis.
      */
     public void verifikasiLaporan(String itemId, boolean terima, String alasanTolak, Petugas aktor) {
-        validasiPetugas(aktor);
+        validasiHakAkses(aktor, HakAkses.VERIFIKASI_LAPORAN);
         Item item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new IllegalArgumentException("Barang dengan ID " + itemId + " tidak ditemukan."));
+                .orElseThrow(() -> new NotFoundException("Barang dengan ID " + itemId + " tidak ditemukan."));
 
         if (isTerkunci(item)) {
-            throw new IllegalStateException("Data barang [" + itemId + "] sudah dikembalikan dan terkunci permanen.");
+            throw new ValidationException("Data barang [" + itemId + "] sudah dikembalikan dan terkunci permanen.");
+        }
+        if (item.getStatus() != StatusItem.DILAPORKAN) {
+            throw new ValidationException("Hanya laporan berstatus DILAPORKAN yang dapat diverifikasi.");
         }
 
         if (terima) {
@@ -79,39 +86,35 @@ public class PetugasService {
             itemRepository.save(item);
             catatLog(itemId, "DIVERIFIKASI (" + statusBaru.getLabel() + ")", aktor.getNama());
 
-            if (item.getJenis() == JenisLaporan.TEMUAN) {
-                String kodeQr = qrCodeService.generateUniqueCode(item.getId());
-                qrCodeMap.put(item.getId(), kodeQr);
-            }
-
-            kirimNotifPelapor(item, "Laporan Diverifikasi",
+            kirimNotifPelapor(item, NotificationType.LAPORAN_DIVERIFIKASI, "Laporan Diverifikasi",
                     "Laporan '" + item.getNama() + "' telah diverifikasi oleh Petugas " + aktor.getNama() + ".");
         } else {
             if (alasanTolak == null || alasanTolak.trim().isEmpty()) {
-                throw new IllegalArgumentException("Alasan penolakan laporan wajib diisi!");
+                throw new ValidationException("alasanTolak", "Alasan penolakan laporan wajib diisi!");
             }
-            catatLog(itemId, "DITOLAK: " + alasanTolak.trim(), aktor.getNama());
-            item.setStatus(StatusItem.DISERAHKAN);
+            String alasanBersih = alasanTolak.trim();
+            item.setStatus(StatusItem.DITOLAK);
             itemRepository.save(item);
-            kirimNotifPelapor(item, "Laporan Ditolak",
-                    "Laporan '" + item.getNama() + "' ditolak. Alasan: " + alasanTolak.trim());
+            catatLog(itemId, "DITOLAK: " + alasanBersih, aktor.getNama());
+
+            kirimNotifPelapor(item, NotificationType.LAPORAN_DITOLAK, "Laporan Ditolak",
+                    "Laporan '" + item.getNama() + "' ditolak. Alasan: " + alasanBersih);
         }
     }
 
     /**
      * US-012: Kontrol Transisi Status Berurutan.
-     * DILAPORKAN -> DIVERIFIKASI -> COCOK -> DIKLAIM -> DIKEMBALIKAN
      */
     public void ubahStatusBarang(String itemId, StatusItem statusBaru, Petugas aktor) {
-        validasiPetugas(aktor);
+        validasiHakAkses(aktor, HakAkses.KELOLA_STATUS_ITEM);
         Item item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new IllegalArgumentException("Barang dengan ID " + itemId + " tidak ditemukan."));
+                .orElseThrow(() -> new NotFoundException("Barang dengan ID " + itemId + " tidak ditemukan."));
 
         if (isTerkunci(item)) {
-            throw new IllegalStateException("Barang [" + itemId + "] sudah berstatus akhir (DIKEMBALIKAN) dan datanya TERKUNCI.");
+            throw new ValidationException("Barang [" + itemId + "] sudah berstatus akhir (DIKEMBALIKAN) dan datanya TERKUNCI.");
         }
         if (!item.getStatus().bolehBerubahKe(statusBaru)) {
-            throw new IllegalStateException("Transisi status tidak valid: dari " + item.getStatus() + " ke " + statusBaru);
+            throw new ValidationException("Transisi status tidak valid: dari " + item.getStatus() + " ke " + statusBaru);
         }
 
         item.setStatus(statusBaru);
@@ -120,62 +123,68 @@ public class PetugasService {
     }
 
     /**
-     * US-013: Atur atau perbarui Lokasi Penyimpanan Fisik Barang.
-     * HANYA berlaku untuk barang berjenis TEMUAN. Sistem menolak keras jika diaplikasikan pada barang Hilang.
+     * US-013: Atur atau perbarui Lokasi Penyimpanan Fisik Barang (tersimpan permanen di item).
      */
     public void aturLokasiPenyimpanan(String itemId, String lokasiFisik, Petugas aktor) {
-        validasiPetugas(aktor);
+        validasiHakAkses(aktor, HakAkses.KELOLA_LOKASI_SIMPAN);
         Item item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new IllegalArgumentException("Barang tidak ditemukan."));
+                .orElseThrow(() -> new NotFoundException("Barang tidak ditemukan."));
 
         if (isTerkunci(item)) {
-            throw new IllegalStateException("Data barang terkunci dan tidak dapat diubah lagi.");
+            throw new ValidationException("Data barang terkunci dan tidak dapat diubah lagi.");
         }
         if (item.getJenis() != JenisLaporan.TEMUAN) {
-            throw new IllegalArgumentException("Lokasi penyimpanan fisik HANYA dapat diatur untuk barang berjenis TEMUAN!");
+            throw new ValidationException("Lokasi penyimpanan fisik HANYA dapat diatur untuk barang berjenis TEMUAN!");
         }
         if (lokasiFisik == null || lokasiFisik.trim().isEmpty()) {
-            throw new IllegalArgumentException("Lokasi penyimpanan fisik tidak boleh kosong.");
+            throw new ValidationException("lokasiFisik", "Lokasi penyimpanan fisik tidak boleh kosong.");
         }
 
-        lokasiSimpanMap.put(itemId, lokasiFisik.trim());
-        catatLog(itemId, "Lokasi simpan fisik diatur ke: " + lokasiFisik.trim(), aktor.getNama());
+        String lokasiBersih = lokasiFisik.trim();
+        item.setTempatPenitipan(lokasiBersih);
+        itemRepository.save(item);
+        catatLog(itemId, "Lokasi simpan fisik diatur ke: " + lokasiBersih, aktor.getNama());
     }
 
     /**
      * US-021 & US-029: Pencatatan Serah Terima Barang & Penguncian Data.
-     * Mengubah status menjadi DIKEMBALIKAN dan mengunci data secara permanen.
      */
     public void prosesSerahTerima(String itemId, String namaPenerima, LocalDate tanggalSerah, Petugas aktor) {
-        validasiPetugas(aktor);
+        validasiHakAkses(aktor, HakAkses.SERAH_TERIMA);
         Item item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new IllegalArgumentException("Barang tidak ditemukan."));
+                .orElseThrow(() -> new NotFoundException("Barang tidak ditemukan."));
 
         if (isTerkunci(item)) {
-            throw new IllegalStateException("Barang ini sudah diserahterimakan dan terkunci permanen.");
+            throw new ValidationException("Barang ini sudah diserahterimakan dan terkunci permanen.");
         }
         if (item.getStatus() != StatusItem.DALAM_PROSES_KLAIM && item.getStatus() != StatusItem.DIKLAIM) {
-            throw new IllegalStateException("Serah terima hanya dapat diproses untuk barang berstatus DIKLAIM / DALAM PROSES KLAIM.");
+            throw new ValidationException("Serah terima hanya dapat diproses untuk barang berstatus DIKLAIM / DALAM PROSES KLAIM.");
         }
         if (namaPenerima == null || namaPenerima.trim().isEmpty()) {
-            throw new IllegalArgumentException("Nama penerima barang wajib diisi.");
+            throw new ValidationException("namaPenerima", "Nama penerima barang wajib diisi.");
         }
+
+        LocalDate tglEfektif = (tanggalSerah != null) ? tanggalSerah : LocalDate.now();
+        String penerimaBersih = namaPenerima.trim();
 
         item.setStatus(StatusItem.DIKEMBALIKAN);
         itemRepository.save(item);
-        catatLog(itemId, "DIKEMBALIKAN kepada " + namaPenerima.trim() + " pada " + tanggalSerah + " [DATA TERKUNCI]", aktor.getNama());
 
-        kirimNotifPelapor(item, "Barang Dikembalikan",
-                "Barang '" + item.getNama() + "' telah selesai diserahterimakan kepada " + namaPenerima.trim() + ".");
+        if (auditRepository != null) {
+            auditRepository.simpanSerahTerima(itemId, penerimaBersih, tglEfektif, aktor.getNomorIdentitas());
+        }
+        catatLog(itemId, "DIKEMBALIKAN kepada " + penerimaBersih + " pada " + tglEfektif + " [DATA TERKUNCI]", aktor.getNama());
+
+        kirimNotifPelapor(item, NotificationType.BARANG_DIKEMBALIKAN, "Barang Dikembalikan",
+                "Barang '" + item.getNama() + "' telah selesai diserahterimakan kepada " + penerimaBersih + ".");
     }
 
     /**
      * US-018 & US-029: Pencarian & Pelacakan Barang via QR Code.
-     * Menerima kode QR unik (misal: "QR-ARC-0001") atau ID Barang langsung.
      */
     public Item cariBarangByQR(String kodeQr) {
         if (kodeQr == null || kodeQr.trim().isEmpty()) {
-            throw new IllegalArgumentException("Kode QR tidak boleh kosong.");
+            throw new ValidationException("Kode QR tidak boleh kosong.");
         }
         String target = kodeQr.trim();
         String normalizedTarget = target.startsWith("QR-") ? target.substring(3).trim() : target;
@@ -188,18 +197,18 @@ public class PetugasService {
                 return item;
             }
         }
-        throw new IllegalArgumentException("Barang dengan kode QR / ID '" + kodeQr + "' tidak ditemukan dalam sistem.");
+        throw new NotFoundException("Barang dengan kode QR / ID '" + kodeQr + "' tidak ditemukan dalam sistem.");
     }
 
     public String getKodeQR(Item item) {
         if (item == null || item.getJenis() != JenisLaporan.TEMUAN) return "-";
-        return qrCodeMap.computeIfAbsent(item.getId(), id -> qrCodeService.generateUniqueCode(id));
+        return qrCodeService.generateUniqueCode(item.getId());
     }
 
     public String getLokasiSimpan(Item item) {
         if (item == null) return "-";
-        if (lokasiSimpanMap.containsKey(item.getId())) {
-            return lokasiSimpanMap.get(item.getId());
+        if (item.getTempatPenitipan() != null && !item.getTempatPenitipan().isBlank()) {
+            return item.getTempatPenitipan();
         }
         if (item.getPosId() != null) {
             return posRepository.findById(item.getPosId())
@@ -215,7 +224,10 @@ public class PetugasService {
     }
 
     public String getRiwayatLog(String itemId) {
-        List<String> logs = riwayatStatusMap.get(itemId);
+        List<String> logs = (auditRepository != null)
+                ? auditRepository.ambilLog(itemId)
+                : fallbackLogMap.get(itemId);
+
         if (logs == null || logs.isEmpty()) {
             return "• Belum ada catatan riwayat perubahan status oleh petugas.";
         }
@@ -227,21 +239,25 @@ public class PetugasService {
     }
 
     private void catatLog(String itemId, String aksi, String pelaku) {
-        riwayatStatusMap.computeIfAbsent(itemId, k -> new ArrayList<>())
-                .add("[" + LocalDateTime.now().format(dtf) + "] " + aksi + " (oleh " + pelaku + ")");
-    }
-
-    private void validasiPetugas(Petugas aktor) {
-        if (aktor == null) {
-            throw new SecurityException("Akses Ditolak: Aksi ini hanya dapat dilakukan oleh Petugas berwenang.");
+        if (auditRepository != null) {
+            auditRepository.simpanLog(itemId, aksi, pelaku);
+        } else {
+            fallbackLogMap.computeIfAbsent(itemId, k -> new ArrayList<>())
+                    .add("[" + LocalDateTime.now().format(dtf) + "] " + aksi + " (oleh " + pelaku + ")");
         }
     }
 
-    private void kirimNotifPelapor(Item item, String judul, String pesan) {
+    private void validasiHakAkses(Petugas aktor, HakAkses hakDibutuhkan) {
+        if (aktor == null || !aktor.punyaHak(hakDibutuhkan)) {
+            throw new AksesDitolakException("Akses Ditolak: Anda tidak memiliki hak akses " + hakDibutuhkan + ".");
+        }
+    }
+
+    private void kirimNotifPelapor(Item item, NotificationType tipe, String judul, String pesan) {
         if (notificationService != null && item.getPelapor() != null && item.getPelapor().getNomorIdentitas() != null) {
             notificationService.kirim(
                     item.getPelapor().getNomorIdentitas(),
-                    NotificationType.KLAIM_DISETUJUI,
+                    tipe,
                     judul,
                     pesan,
                     item.getId()
@@ -249,10 +265,6 @@ public class PetugasService {
         }
     }
 
-    /**
-     * Memastikan data simulasi lengkap tersedia saat dashboard dibuka pertama kali.
-     * Mencakup item Hilang/Temuan dengan status DILAPORKAN, DIVERIFIKASI, COCOK, DIKLAIM, & DIKEMBALIKAN.
-     */
     public void pastikanDataAwalLengkap(KlaimRepository klaimRepo) {
         if (itemRepository.findAll().size() >= 3) {
             return;
@@ -263,7 +275,6 @@ public class PetugasService {
         User mhsBudi = new Mahasiswa("Budi Santoso", "230001003");
         User mhsSiti = new Mahasiswa("Siti Nurhaliza", "230001004");
 
-        // 1. Laporan Temuan Baru (DILAPORKAN) -> Siap diverifikasi di Tab 1
         Item t101 = new BarangElektronik(
                 "T-101", JenisLaporan.TEMUAN, "iPhone 13 Midnight 128GB",
                 KategoriBarang.ELEKTRONIK, "Ditemukan di bangku panjang Gedung Kuliah Bersama Lt. 2",
@@ -274,7 +285,6 @@ public class PetugasService {
         itemRepository.save(t101);
         catatLog(t101.getId(), "DILAPORKAN oleh Mahasiswa", "Sistem");
 
-        // 2. Laporan Hilang Baru (DILAPORKAN) -> Siap diverifikasi di Tab 1
         Item h102 = new BarangNonElektronik(
                 "H-102", JenisLaporan.HILANG, "Dompet Kulit Braun Buffel Coklat",
                 KategoriBarang.NON_ELEKTRONIK, "Tertinggal di meja kasir setelah bayar makan siang",
@@ -285,7 +295,6 @@ public class PetugasService {
         itemRepository.save(h102);
         catatLog(h102.getId(), "DILAPORKAN oleh Mahasiswa", "Sistem");
 
-        // 3. Pasangan Kandidat Smart Matching (DIVERIFIKASI / DICARI & TERSEDIA)
         Item h012 = new BarangElektronik(
                 "H-012", JenisLaporan.HILANG, "Flashdisk SanDisk Cruzer Blade 64GB",
                 KategoriBarang.ELEKTRONIK, "Flashdisk hitam merah tertinggal di PC-12 Lab Komputer",
@@ -300,14 +309,12 @@ public class PetugasService {
                 StatusItem.TERSEDIA, LocalDateTime.now().minusDays(1), mhsAgnes,
                 "SanDisk", "SN-SD64GB992"
         );
+        t034.setTempatPenitipan("Loker B-04 Ruang Satpam");
         itemRepository.save(h012);
         itemRepository.save(t034);
-        lokasiSimpanMap.put(t034.getId(), "Loker B-04 Ruang Satpam");
-        qrCodeMap.put(t034.getId(), "QR-T-034");
-        catatLog(h012.getId(), "DIVERIFIKASI (Dicari)", "Bintang");
-        catatLog(t034.getId(), "DIVERIFIKASI (Tersedia)", "Bintang");
+        catatLog(h012.getId(), "DIVERIFIKASI (Dicari)", "Rina");
+        catatLog(t034.getId(), "DIVERIFIKASI (Tersedia)", "Rina");
 
-        // 4. Barang Temuan dengan Antrean Klaim (TERSEDIA) -> Tab 2
         Item t055 = new BarangNonElektronik(
                 "T-055", JenisLaporan.TEMUAN, "Tumbler Corkcicle Canteen Cobalt 750ml",
                 KategoriBarang.NON_ELEKTRONIK, "Tumbler biru metalik tertinggal di meja baca lantai 2 perpustakaan",
@@ -315,10 +322,9 @@ public class PetugasService {
                 StatusItem.TERSEDIA, LocalDateTime.now().minusDays(2), mhsAgnes,
                 "Cobalt Blue", "Stainless Steel"
         );
+        t055.setTempatPenitipan("Loker A-12 Pos Satpam Rektorat");
         itemRepository.save(t055);
-        lokasiSimpanMap.put(t055.getId(), "Loker A-12 Pos Satpam Rektorat");
-        qrCodeMap.put(t055.getId(), "QR-T-055");
-        catatLog(t055.getId(), "DIVERIFIKASI (Tersedia)", "Bintang");
+        catatLog(t055.getId(), "DIVERIFIKASI (Tersedia)", "Rina");
 
         if (klaimRepo != null) {
             Klaim k201 = new Klaim(
@@ -340,7 +346,6 @@ public class PetugasService {
             klaimRepo.save(k201);
         }
 
-        // 5. Barang Siap Serah Terima (DIKLAIM) -> Tab 5
         Item t080 = new BarangElektronik(
                 "T-080", JenisLaporan.TEMUAN, "Kalkulator Ilmiah Casio FX-991EX",
                 KategoriBarang.ELEKTRONIK, "Tertinggal di Ruang Seminar B",
@@ -348,10 +353,9 @@ public class PetugasService {
                 StatusItem.DIKLAIM, LocalDateTime.now().minusDays(3), mhsBudi,
                 "Casio", "SN-FX991-002"
         );
+        t080.setTempatPenitipan("Loker B-01 Ruang Satpam");
         itemRepository.save(t080);
-        lokasiSimpanMap.put(t080.getId(), "Loker B-01 Ruang Satpam");
-        qrCodeMap.put(t080.getId(), "QR-T-080");
-        catatLog(t080.getId(), "DIVERIFIKASI (Tersedia)", "Bintang");
-        catatLog(t080.getId(), "Status berubah menjadi: DIKLAIM (Klaim disetujui)", "Bintang");
+        catatLog(t080.getId(), "DIVERIFIKASI (Tersedia)", "Rina");
+        catatLog(t080.getId(), "Status berubah menjadi: DIKLAIM (Klaim disetujui)", "Rina");
     }
 }
