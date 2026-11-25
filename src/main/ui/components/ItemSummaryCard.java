@@ -152,7 +152,7 @@ public class ItemSummaryCard extends JPanel {
 
         // b) Judul nama barang apa adanya (serif 24, JANGAN auto-kapital)
         String namaStr = (item != null) ? item.getNama() : "Barang";
-        g2.setFont(Fonts.serif(24f, Font.BOLD));
+        g2.setFont(Fonts.sans(22f, Font.BOLD));
         g2.setColor(Theme.TEXT_PRIMARY);
         int titleY = chipY + chipH + 24;
         String displayNama = truncateText(namaStr, g2.getFontMetrics(), maxTextW);

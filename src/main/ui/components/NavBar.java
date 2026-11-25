@@ -47,7 +47,10 @@ public class NavBar extends JPanel {
         this.controller = controller;
         setPreferredSize(new Dimension(Theme.WINDOW_DEFAULT.width, Theme.NAVBAR_HEIGHT));
         setBackground(Theme.NAVBAR_BACKGROUND);
-        setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 32, 0, 32));
+        setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, Theme.NAVBAR_BORDER),
+                javax.swing.BorderFactory.createEmptyBorder(0, 32, 0, 32)
+        ));
 
         initComponents();
 
@@ -64,7 +67,7 @@ public class NavBar extends JPanel {
         leftBrandPanel.setOpaque(false);
 
         JLabel logoLabel = new JLabel("CampusFind");
-        logoLabel.setFont(Fonts.serif(22f, Font.BOLD));
+        logoLabel.setFont(Fonts.sans(20f, Font.BOLD));
         logoLabel.setForeground(Theme.TEXT_PRIMARY);
         logoLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         logoLabel.addMouseListener(new MouseAdapter() {
@@ -75,7 +78,7 @@ public class NavBar extends JPanel {
         });
 
         JLabel dotLabel = new JLabel(".");
-        dotLabel.setFont(Fonts.serif(22f, Font.BOLD));
+        dotLabel.setFont(Fonts.sans(20f, Font.BOLD));
         dotLabel.setForeground(Theme.NUMBER_CIRCLE_BG);
 
         leftBrandPanel.add(logoLabel);
@@ -177,7 +180,10 @@ public class NavBar extends JPanel {
         hamburgerBtn.setVisible(isNarrow);
 
         int pad = (width < Theme.BREAKPOINT_COMPACT) ? 16 : 32;
-        setBorder(javax.swing.BorderFactory.createEmptyBorder(0, pad, 0, pad));
+        setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, Theme.NAVBAR_BORDER),
+                javax.swing.BorderFactory.createEmptyBorder(0, pad, 0, pad)
+        ));
         revalidate();
         repaint();
     }

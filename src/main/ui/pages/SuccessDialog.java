@@ -44,13 +44,13 @@ public class SuccessDialog extends JDialog {
         content.add(Box.createVerticalStrut(18));
 
         JLabel title = new JLabel("Operasi Berhasil");
-        title.setFont(Fonts.serif(24f, Font.BOLD));
+        title.setFont(Fonts.sans(22f, Font.BOLD));
         title.setForeground(Theme.TEXT_PRIMARY);
         title.setAlignmentX(CENTER_ALIGNMENT);
         content.add(title);
 
         content.add(Box.createVerticalStrut(8));
-        JLabel msgLbl = new JLabel("<html><body style='width: 320px; text-align: center; font-family: sans-serif; font-size: 13px; color: #5E554C;'>" +
+        JLabel msgLbl = new JLabel("<html><body style='width: 320px; text-align: center; font-family: sans-serif; font-size: 13px; color: #475569;'>" +
                 message + "</body></html>");
         msgLbl.setAlignmentX(CENTER_ALIGNMENT);
         content.add(msgLbl);

@@ -82,7 +82,7 @@ public class KandidatCocokDialog extends JDialog {
         headerPanel.setOpaque(false);
 
         JLabel title = new JLabel("Rekomendasi Kandidat Cocok");
-        title.setFont(Fonts.serif(22f, Font.BOLD));
+        title.setFont(Fonts.sans(20f, Font.BOLD));
         title.setForeground(Theme.TEXT_PRIMARY);
 
         String infoText = (laporanHilang != null)

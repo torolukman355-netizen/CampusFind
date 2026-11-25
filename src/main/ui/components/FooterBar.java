@@ -46,7 +46,7 @@ public class FooterBar extends JPanel {
         leftBrandPanel.setOpaque(false);
 
         JLabel brand = new JLabel("CampusFind");
-        brand.setFont(Fonts.serif(15f, Font.BOLD));
+        brand.setFont(Fonts.sans(14f, Font.BOLD));
         brand.setForeground(Theme.TEXT_PRIMARY);
 
         JLabel desc = new JLabel(" — Layanan Rekonsiliasi & Kehilangan Kampus");

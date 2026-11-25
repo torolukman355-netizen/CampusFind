@@ -80,7 +80,7 @@ public final class ItemDetailDialog {
         kode.setForeground(Theme.TEXT_MUTED);
 
         JLabel nama = new JLabel(item.getNama());
-        nama.setFont(Fonts.serif(24f, Font.BOLD));
+        nama.setFont(Fonts.sans(22f, Font.BOLD));
         nama.setForeground(Theme.TEXT_PRIMARY);
 
         JPanel meta = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));

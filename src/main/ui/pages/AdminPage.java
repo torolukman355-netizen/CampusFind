@@ -245,7 +245,7 @@ public class AdminPage extends ResponsivePage {
         lblJudul.setForeground(Theme.TEXT_MUTED);
 
         JLabel lblNilai = new JLabel(nilai);
-        lblNilai.setFont(Fonts.serif(30f, Font.BOLD));
+        lblNilai.setFont(Fonts.sans(30f, Font.BOLD));
         lblNilai.setForeground(Theme.TEXT_PRIMARY);
 
         JLabel lblKet = new JLabel(keterangan);
@@ -292,11 +292,13 @@ public class AdminPage extends ResponsivePage {
             }
         });
         tabel.setFont(Fonts.sans(12f, Font.PLAIN));
-        tabel.setRowHeight(26);
+        tabel.setRowHeight(34);
         tabel.setForeground(Theme.TEXT_PRIMARY);
         tabel.setBackground(Theme.INPUT_BACKGROUND);
         tabel.setGridColor(Theme.CARD_DIVIDER);
-        tabel.setSelectionBackground(new Color(0xE6, 0xDF, 0xD2));
+        tabel.setSelectionBackground(new Color(0xEE, 0xF2, 0xFF));
+        tabel.setSelectionForeground(new Color(0x1E, 0x1B, 0x4B));
+        tabel.setShowVerticalLines(false);
         tabel.setFillsViewportHeight(true);
 
         if (onRowActivated != null) {
@@ -420,11 +422,13 @@ public class AdminPage extends ResponsivePage {
 
         JTable tabel = new JTable(userTableModel);
         tabel.setFont(Fonts.sans(12f, Font.PLAIN));
-        tabel.setRowHeight(26);
+        tabel.setRowHeight(34);
         tabel.setForeground(Theme.TEXT_PRIMARY);
         tabel.setBackground(Theme.INPUT_BACKGROUND);
         tabel.setGridColor(Theme.CARD_DIVIDER);
-        tabel.setSelectionBackground(new Color(0xE6, 0xDF, 0xD2));
+        tabel.setSelectionBackground(new Color(0xEE, 0xF2, 0xFF));
+        tabel.setSelectionForeground(new Color(0x1E, 0x1B, 0x4B));
+        tabel.setShowVerticalLines(false);
         tabel.setFillsViewportHeight(true);
 
         JTableHeader th = tabel.getTableHeader();

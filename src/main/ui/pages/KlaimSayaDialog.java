@@ -106,7 +106,7 @@ public class KlaimSayaDialog extends JDialog {
         headerLeft.setOpaque(false);
 
         JLabel title = new JLabel("Riwayat & Status Klaim Saya");
-        title.setFont(Fonts.serif(22f, Font.BOLD));
+        title.setFont(Fonts.sans(20f, Font.BOLD));
         title.setForeground(Theme.TEXT_PRIMARY);
 
         String idText = appSession.isLoggedIn() ? appSession.getNomorIdentitas() + " (" + appSession.getNama() + ")" : "-";

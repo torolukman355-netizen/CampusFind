@@ -68,7 +68,7 @@ public class NotifikasiDialog extends JDialog {
         headerPanel.setOpaque(false);
 
         JLabel title = new JLabel("Pemberitahuan Saya");
-        title.setFont(Fonts.serif(22f, Font.BOLD));
+        title.setFont(Fonts.sans(20f, Font.BOLD));
         title.setForeground(Theme.TEXT_PRIMARY);
 
         lblHeaderCount = new JLabel();

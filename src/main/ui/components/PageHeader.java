@@ -47,9 +47,9 @@ public class PageHeader extends JPanel {
 
         add(Box.createVerticalStrut(14));
 
-        // 2. Title (serif)
+        // 2. Title (modern sans)
         titleLabel = new JLabel(title);
-        titleLabel.setFont(Fonts.serif(46f, Font.BOLD));
+        titleLabel.setFont(Fonts.sans(40f, Font.BOLD));
         titleLabel.setForeground(Theme.TEXT_PRIMARY);
         titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
@@ -74,13 +74,13 @@ public class PageHeader extends JPanel {
         if (contentWidth <= 0 || contentWidth == lastWidth) return;
         lastWidth = contentWidth;
 
-        // Font scaling: 46pt -> 34pt (< 650) -> 28pt (< 480)
+        // Font scaling: 40pt -> 32pt (< 650) -> 26pt (< 480)
         if (contentWidth < Theme.BREAKPOINT_TINY) {
-            titleLabel.setFont(Fonts.serif(28f, Font.BOLD));
+            titleLabel.setFont(Fonts.sans(26f, Font.BOLD));
         } else if (contentWidth < Theme.BREAKPOINT_COMPACT) {
-            titleLabel.setFont(Fonts.serif(34f, Font.BOLD));
+            titleLabel.setFont(Fonts.sans(32f, Font.BOLD));
         } else {
-            titleLabel.setFont(Fonts.serif(46f, Font.BOLD));
+            titleLabel.setFont(Fonts.sans(40f, Font.BOLD));
         }
 
         // Subtitle dynamic width calculation (max maxWrapWidth, at least 220px)
