@@ -107,7 +107,7 @@ class KlaimServiceTest {
                 id,
                 JenisLaporan.TEMUAN,
                 "Kunci Motor Vario",
-                KategoriBarang.KUNCI_KENDARAAN,
+                KategoriBarang.NON_ELEKTRONIK,
                 "Gantungan warna hitam",
                 "Parkir Barat",
                 LocalDate.of(2026, 11, 19),
@@ -155,6 +155,48 @@ class KlaimServiceTest {
         List<Notification> notifList = notificationRepository.findByPenerima("987654321");
         assertFalse(notifList.isEmpty());
         assertTrue(notifList.get(0).getIsi().contains(item.kode()));
+    }
+
+    @Test
+    @DisplayName("Pengajuan klaim berhasil untuk item temuan berstatus COCOK dan DIVERIFIKASI")
+    void testKlaimItemStatusCocokDanDiverifikasiBerhasil() {
+        Item itemCocok = createSampleTemuanItem("111222333");
+        itemCocok.setStatus(StatusItem.COCOK);
+        itemRepository.save(itemCocok);
+
+        File bukti1 = createSampleBuktiFile("bukti_cocok.jpg");
+        Klaim klaim1 = klaimService.ajukan(
+                itemCocok.getId(),
+                "987654321",
+                "Dewi Lestari",
+                "Laptop hitam dengan stiker bintang di kiri casing",
+                bukti1,
+                LocalDate.of(2026, 11, 23),
+                SesiLayanan.SIANG,
+                true,
+                true
+        );
+        assertNotNull(klaim1);
+        assertEquals(StatusKlaim.DIAJUKAN, klaim1.getStatus());
+
+        Item itemDiverifikasi = createSampleTemuanItem("111222333");
+        itemDiverifikasi.setStatus(StatusItem.DIVERIFIKASI);
+        itemRepository.save(itemDiverifikasi);
+
+        File bukti2 = createSampleBuktiFile("bukti_verif.jpg");
+        Klaim klaim2 = klaimService.ajukan(
+                itemDiverifikasi.getId(),
+                "987654321",
+                "Dewi Lestari",
+                "Earbuds warna putih nomor seri case tergores",
+                bukti2,
+                LocalDate.of(2026, 11, 23),
+                SesiLayanan.PAGI,
+                true,
+                true
+        );
+        assertNotNull(klaim2);
+        assertEquals(StatusKlaim.DIAJUKAN, klaim2.getStatus());
     }
 
     @Test

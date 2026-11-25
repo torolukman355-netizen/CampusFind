@@ -1,0 +1,5 @@
+# Salin file ini menjadi database.properties lalu sesuaikan nilainya.
+# database.properties diabaikan oleh git agar kredensial tidak masuk repositori.
+db.url=jdbc:postgresql://localhost:5432/campusfind
+db.user=campusfind
+db.password=campusfind

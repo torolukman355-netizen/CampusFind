@@ -34,7 +34,7 @@ class FileRepositoryTest {
                 id,
                 JenisLaporan.TEMUAN,
                 "Dompet Kulit",
-                KategoriBarang.TAS_DOMPET,
+                KategoriBarang.NON_ELEKTRONIK,
                 "Dompet cokelat berisi uang",
                 "Kantin Perpustakaan",
                 LocalDate.of(2026, 11, 1),

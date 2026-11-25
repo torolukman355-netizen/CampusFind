@@ -112,8 +112,8 @@ class KandidatNotifierTest {
         Item hilang = createLaporanHilang("ARC-0001", "Laptop Asus ROG Zephyrus", nimHilang);
         itemRepository.save(hilang);
 
-        // Kategori PAKAIAN_AKSESORIS (skor = 0)
-        Item temuan = createBarangTemuan("ARC-0002", "Laptop Asus ROG Zephyrus", nimTemuan, KategoriBarang.PAKAIAN_AKSESORIS);
+        // Kategori NON_ELEKTRONIK (skor = 0)
+        Item temuan = createBarangTemuan("ARC-0002", "Laptop Asus ROG Zephyrus", nimTemuan, KategoriBarang.NON_ELEKTRONIK);
         itemRepository.save(temuan);
 
         kandidatNotifier.onItemCreated(temuan);
@@ -161,7 +161,7 @@ class KandidatNotifierTest {
             itemService.laporkan(
                     JenisLaporan.HILANG,
                     "Kunci Motor Beat",
-                    KategoriBarang.KUNCI_KENDARAAN,
+                    KategoriBarang.NON_ELEKTRONIK,
                     "Kunci motor gantungan dompet",
                     "Parkiran FMIPA",
                     LocalDate.of(2026, 11, 20),

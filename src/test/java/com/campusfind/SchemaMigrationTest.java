@@ -38,7 +38,7 @@ class SchemaMigrationTest {
                 "1001",
                 JenisLaporan.TEMUAN,
                 "Helm KYT",
-                KategoriBarang.LAINNYA,
+                KategoriBarang.NON_ELEKTRONIK,
                 "Helm hitam di kantin",
                 "Kantin",
                 LocalDate.of(2026, 11, 10),

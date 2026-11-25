@@ -84,7 +84,7 @@ class DevPetugasSimulatorTest {
     @DisplayName("Simulasi persetujuan klaim berhasil mengubah status menjadi DISETUJUI")
     void testSimulasikanSetujui() throws IOException {
         Item item = ItemFactory.create(
-                "ARC-0001", JenisLaporan.TEMUAN, "Kunci Motor", KategoriBarang.KUNCI_KENDARAAN,
+                "ARC-0001", JenisLaporan.TEMUAN, "Kunci Motor", KategoriBarang.NON_ELEKTRONIK,
                 "Gantungan kunci", "Parkir", LocalDate.of(2026, 11, 20),
                 "POS-0001", null, "Kunci Honda", StatusItem.TERSEDIA,
                 LocalDateTime.now(), "Penemu", "111222333", "Hitam", "Besi"
@@ -109,7 +109,7 @@ class DevPetugasSimulatorTest {
     @DisplayName("Simulasi penolakan klaim berhasil mengubah status menjadi DITOLAK dengan alasan")
     void testSimulasikanTolak() throws IOException {
         Item item = ItemFactory.create(
-                "ARC-0001", JenisLaporan.TEMUAN, "Kunci Motor", KategoriBarang.KUNCI_KENDARAAN,
+                "ARC-0001", JenisLaporan.TEMUAN, "Kunci Motor", KategoriBarang.NON_ELEKTRONIK,
                 "Gantungan kunci", "Parkir", LocalDate.of(2026, 11, 20),
                 "POS-0001", null, "Kunci Honda", StatusItem.TERSEDIA,
                 LocalDateTime.now(), "Penemu", "111222333", "Hitam", "Besi"

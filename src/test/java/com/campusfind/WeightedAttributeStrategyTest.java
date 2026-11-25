@@ -90,7 +90,7 @@ class WeightedAttributeStrategyTest {
         );
 
         Item temuan = createNonElektronik(
-                "ARC-0002", JenisLaporan.TEMUAN, KategoriBarang.PAKAIAN_AKSESORIS,
+                "ARC-0002", JenisLaporan.TEMUAN, KategoriBarang.NON_ELEKTRONIK,
                 "Smartwatch Apple Watch",
                 "Jam tangan pintar warna hitam",
                 "Kantin Pusat",

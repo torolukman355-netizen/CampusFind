@@ -7,3 +7,6 @@ out/
 target/
 data/
 .m2-repo/
+
+# Kredensial database lokal (jangan di-commit)
+database.properties
