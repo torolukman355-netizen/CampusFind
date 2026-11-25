@@ -1,7 +1,10 @@
 package com.campusfind.service;
 
 import com.campusfind.exception.AksesDitolakException;
+import com.campusfind.exception.NotFoundException;
+import com.campusfind.exception.ValidationException;
 import com.campusfind.model.Admin;
+import com.campusfind.model.HakAkses;
 import com.campusfind.model.Mahasiswa;
 import com.campusfind.model.Petugas;
 import com.campusfind.model.Role;
@@ -14,7 +17,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Layanan autentikasi berbasis nomor identitas, email, dan role.
+ * Layanan autentikasi dan manajemen pengguna berbasis nomor identitas, email, dan role.
  */
 public class AuthService {
 
@@ -30,15 +33,6 @@ public class AuthService {
         this.userRepository = userRepository;
     }
 
-    /**
-     * Login dengan role eksplisit.
-     *
-     * @param nomorIdentitas NIM / NIP / nama pengguna admin
-     * @param nama           nama tampilan (opsional, akan dibuat otomatis bila kosong)
-     * @param role           role yang dipilih
-     * @return pengguna yang berhasil login
-     * @throws AksesDitolakException jika role tidak dipilih atau identitas tidak valid
-     */
     public User login(String nomorIdentitas, String nama, Role role) {
         if (role == null) {
             throw new AksesDitolakException("Role pengguna wajib dipilih.");
@@ -75,13 +69,6 @@ public class AuthService {
         return user;
     }
 
-    /**
-     * Login berbasis alamat email kampus.
-     *
-     * @param email    alamat email pengguna
-     * @param password kata sandi (opsional untuk demo)
-     * @return pengguna yang berhasil masuk
-     */
     public User loginWithEmail(String email, String password) {
         if (email == null || email.isBlank() || !email.contains("@")) {
             throw new AksesDitolakException("Format email tidak valid.");
@@ -100,7 +87,6 @@ public class AuthService {
             }
         }
 
-        // Tentukan role berdasarkan pola email bila pengguna belum ada di repositori
         String lower = trimmed.toLowerCase();
         Role role;
         String id;
@@ -132,16 +118,10 @@ public class AuthService {
         return user;
     }
 
-    /**
-     * Login tanpa menyebut role: role ditebak dari panjang nomor identitas.
-     */
     public User login(String nomorIdentitas) {
         return login(nomorIdentitas, null, Role.dariNomorIdentitas(nomorIdentitas));
     }
 
-    /**
-     * Mengakhiri sesi aktif.
-     */
     public void logout() {
         session.clear();
     }
@@ -150,18 +130,6 @@ public class AuthService {
         return session.isLoggedIn();
     }
 
-    /**
-     * Mendaftar akun baru khusus untuk Mahasiswa.
-     * Hanya Mahasiswa yang dapat mendaftar mandiri secara publik.
-     * Petugas dan Admin mendapatkan akses langsung dari Administrator kampus.
-     *
-     * @param nama     nama lengkap mahasiswa
-     * @param nim      NIM 9 digit angka
-     * @param email    alamat email mahasiswa (@student.kampus.ac atau sejenis)
-     * @param password kata sandi akun (minimal 6 karakter)
-     * @return akun Mahasiswa yang berhasil terdaftar dan masuk ke sesi
-     * @throws AksesDitolakException jika data tidak valid atau sudah terdaftar
-     */
     public Mahasiswa daftarMahasiswa(String nama, String nim, String email, String password) {
         if (nama == null || nama.trim().isBlank()) {
             throw new AksesDitolakException("Nama lengkap wajib diisi.");
@@ -203,21 +171,8 @@ public class AuthService {
         return mhs;
     }
 
-    /**
-     * Menambahkan akun Petugas baru oleh Administrator.
-     * Petugas tidak dapat mendaftar mandiri, akses diberikan oleh Admin.
-     *
-     * @param nama     nama lengkap petugas
-     * @param nip      NIP 18 digit angka
-     * @param email    email dinas petugas
-     * @param password kata sandi awal (minimal 6 karakter)
-     * @return akun Petugas yang berhasil didaftarkan
-     * @throws AksesDitolakException jika identitas tidak valid atau bukan admin
-     */
     public Petugas tambahPetugasOlehAdmin(String nama, String nip, String email, String password) {
-        if (session.isLoggedIn() && session.getUser().getRole() != Role.ADMIN) {
-            throw new AksesDitolakException("Hanya Administrator yang berwenang menambahkan akun Petugas.");
-        }
+        pastikanAksesAdmin();
         if (nama == null || nama.trim().isBlank()) {
             throw new AksesDitolakException("Nama petugas wajib diisi.");
         }
@@ -256,8 +211,79 @@ public class AuthService {
     }
 
     /**
-     * @return pengguna yang sedang aktif, bila ada
+     * Mengaktifkan atau menonaktifkan akun pengguna (US-022 & US-030).
+     * Admin tidak diizinkan menonaktifkan akunnya sendiri.
      */
+    public User ubahStatusAktifUser(String nomorIdentitasTarget, boolean aktif) {
+        pastikanAksesAdmin();
+        if (userRepository == null) {
+            throw new ValidationException("Repositori pengguna tidak tersedia.");
+        }
+        if (nomorIdentitasTarget == null || nomorIdentitasTarget.isBlank()) {
+            throw new ValidationException("Nomor identitas pengguna wajib dipilih.");
+        }
+
+        String targetId = nomorIdentitasTarget.trim();
+        if (!aktif && session.isLoggedIn()
+                && targetId.equalsIgnoreCase(session.getUser().getNomorIdentitas())) {
+            throw new ValidationException("Admin tidak dapat menonaktifkan akunnya sendiri.");
+        }
+
+        User target = userRepository.findById(targetId)
+                .orElseThrow(() -> new NotFoundException("Pengguna dengan identitas '" + targetId + "' tidak ditemukan."));
+
+        target.setAktif(aktif);
+        userRepository.save(target);
+        return target;
+    }
+
+    /**
+     * Mengubah role pengguna yang terdaftar (US-022 & US-030).
+     */
+    public User ubahRoleUser(String nomorIdentitasTarget, Role roleBaru) {
+        pastikanAksesAdmin();
+        if (userRepository == null) {
+            throw new ValidationException("Repositori pengguna tidak tersedia.");
+        }
+        if (nomorIdentitasTarget == null || nomorIdentitasTarget.isBlank()) {
+            throw new ValidationException("Nomor identitas pengguna wajib dipilih.");
+        }
+        if (roleBaru == null) {
+            throw new ValidationException("Role baru wajib dipilih.");
+        }
+
+        String targetId = nomorIdentitasTarget.trim();
+        if (session.isLoggedIn()
+                && targetId.equalsIgnoreCase(session.getUser().getNomorIdentitas())
+                && roleBaru != Role.ADMIN) {
+            throw new ValidationException("Admin tidak dapat menurunkan role akunnya sendiri.");
+        }
+
+        User lama = userRepository.findById(targetId)
+                .orElseThrow(() -> new NotFoundException("Pengguna dengan identitas '" + targetId + "' tidak ditemukan."));
+
+        if (lama.getRole() == roleBaru) {
+            return lama;
+        }
+
+        User pengganti = buatUser(
+                roleBaru,
+                lama.getNama(),
+                lama.getNomorIdentitas(),
+                lama.getEmail(),
+                lama.getPasswordHash(),
+                lama.isAktif()
+        );
+        userRepository.save(pengganti);
+        return pengganti;
+    }
+
+    private void pastikanAksesAdmin() {
+        if (session.isLoggedIn() && !session.getUser().punyaHak(HakAkses.MANAJEMEN_PENGGUNA)) {
+            throw new AksesDitolakException("Hanya Administrator yang berwenang mengelola pengguna.");
+        }
+    }
+
     public Optional<User> penggunaAktif() {
         return Optional.ofNullable(session.getUser());
     }

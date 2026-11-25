@@ -3,13 +3,16 @@ package com.campusfind.ui.pages;
 import com.campusfind.model.HakAkses;
 import com.campusfind.model.Item;
 import com.campusfind.model.JenisLaporan;
+import com.campusfind.model.KategoriBarang;
 import com.campusfind.model.Klaim;
 import com.campusfind.model.Role;
 import com.campusfind.model.StatusItem;
 import com.campusfind.model.StatusKlaim;
+import com.campusfind.model.User;
 import com.campusfind.repository.KlaimRepository;
 import com.campusfind.service.AppSession;
 import com.campusfind.service.ItemService;
+import com.campusfind.service.StatistikService;
 import com.campusfind.ui.components.FooterBar;
 import com.campusfind.ui.components.ItemDetailDialog;
 import com.campusfind.ui.components.PageHeader;
@@ -30,6 +33,8 @@ import javax.swing.JPasswordField;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
+import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import java.awt.BorderLayout;
@@ -39,27 +44,33 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Frame;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.GridLayout;
+import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import javax.swing.SwingUtilities;
 import java.util.Comparator;
-import java.util.function.IntConsumer;
 import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
-import com.campusfind.model.User;
+import java.util.function.IntConsumer;
 
 /**
- * Dashboard khusus role Admin: statistik layanan, ringkasan klaim,
- * laporan terbaru, dan daftar hak akses yang dimiliki role Admin.
+ * Dashboard khusus role Admin: statistik layanan + grafik batang Graphics2D (US-031),
+ * manajemen pengguna lengkap (US-030), ringkasan klaim, dan hak akses role Admin.
  */
 public class AdminPage extends ResponsivePage {
 
     private final NavigationController controller;
+    private final StatistikService statistikService = new StatistikService();
     private final PageHeader header;
     private final JPanel statRow;
+    private final JPanel chartRow;
     private final RoundedPanel kartuPengguna;
     private final RoundedPanel kartuStatus;
     private final RoundedPanel kartuKlaim;
@@ -67,6 +78,7 @@ public class AdminPage extends ResponsivePage {
     private final RoundedPanel kartuHakAkses;
     private final FooterBar footerBar;
     private DefaultTableModel userTableModel;
+    private JTable tabelPengguna;
 
     public AdminPage(NavigationController controller,
                      ItemService itemService,
@@ -81,20 +93,46 @@ public class AdminPage extends ResponsivePage {
         header = new PageHeader(
                 "ADMINISTRASI SISTEM",
                 "Dashboard Admin",
-                "Ringkasan statistik layanan, pemantauan klaim, dan hak akses role Admin."
+                "Statistik kehilangan & pengembalian, grafik laporan, manajemen pengguna, dan hak akses."
         );
         addContent(header);
 
         addContentStrut(24);
 
-        statRow = new JPanel(new GridLayout(1, 4, 16, 0));
+        long totalHilang = statistikService.hitungPerJenis(items, JenisLaporan.HILANG);
+        long totalTemuan = statistikService.hitungPerJenis(items, JenisLaporan.TEMUAN);
+        int persenKembali = (int) Math.round(statistikService.hitungTingkatPengembalianPersen(items));
+        String rataWaktu = statistikService.formatRataRataWaktuPengembalian(items);
+
+        statRow = new JPanel(new GridLayout(1, 5, 14, 0));
         statRow.setOpaque(false);
         statRow.setAlignmentX(Component.CENTER_ALIGNMENT);
         statRow.add(statCard("Total Laporan", String.valueOf(items.size()), "seluruh laporan masuk"));
-        statRow.add(statCard("Barang Hilang", String.valueOf(hitungJenis(items, JenisLaporan.HILANG)), "laporan kehilangan"));
-        statRow.add(statCard("Barang Temuan", String.valueOf(hitungJenis(items, JenisLaporan.TEMUAN)), "barang dititipkan"));
-        statRow.add(statCard("Tingkat Pengembalian", hitungTingkatPengembalian(items) + "%", "barang kembali"));
+        statRow.add(statCard("Barang Hilang", String.valueOf(totalHilang), "laporan kehilangan"));
+        statRow.add(statCard("Barang Temuan", String.valueOf(totalTemuan), "barang dititipkan"));
+        statRow.add(statCard("Pengembalian", persenKembali + "%", "tingkat kembali"));
+        statRow.add(statCard("Rata-rata Waktu", rataWaktu, "laporan ke kembali"));
         addContent(statRow);
+
+        addContentStrut(18);
+
+        // US-031: Grafik Batang Graphics2D per Kategori dan per Bulan
+        chartRow = new JPanel(new GridLayout(1, 2, 16, 0));
+        chartRow.setOpaque(false);
+        chartRow.setAlignmentX(Component.CENTER_ALIGNMENT);
+        chartRow.add(buatKartuGrafik(
+                "Grafik Laporan per Kategori",
+                "Distribusi barang hilang & temuan berdasarkan kategori",
+                konversiDataKategori(statistikService.hitungPerKategori(items)),
+                new Color(0x4F, 0x46, 0xE5)
+        ));
+        chartRow.add(buatKartuGrafik(
+                "Grafik Laporan per Periode (Bulan)",
+                "Tren jumlah laporan yang masuk setiap bulan",
+                statistikService.hitungPerBulan(items),
+                new Color(0x0D, 0x94, 0x88)
+        ));
+        addContent(chartRow);
 
         addContentStrut(20);
 
@@ -154,6 +192,7 @@ public class AdminPage extends ResponsivePage {
         footerBar.updateResponsive(contentWidth);
 
         statRow.setMaximumSize(new Dimension(contentWidth, 120));
+        chartRow.setMaximumSize(new Dimension(contentWidth, 270));
         kartuPengguna.setMaximumSize(new Dimension(contentWidth, Integer.MAX_VALUE));
         kartuStatus.setMaximumSize(new Dimension(contentWidth, Integer.MAX_VALUE));
         kartuKlaim.setMaximumSize(new Dimension(contentWidth, Integer.MAX_VALUE));
@@ -164,20 +203,136 @@ public class AdminPage extends ResponsivePage {
         repaint();
     }
 
-    private long hitungJenis(List<Item> items, JenisLaporan jenis) {
-        return items.stream().filter(item -> item.getJenis() == jenis).count();
+    private Map<String, Long> konversiDataKategori(Map<KategoriBarang, Long> perKategori) {
+        Map<String, Long> hasil = new LinkedHashMap<>();
+        for (Map.Entry<KategoriBarang, Long> entry : perKategori.entrySet()) {
+            hasil.put(entry.getKey().getLabel(), entry.getValue());
+        }
+        return hasil;
     }
 
-    private int hitungTingkatPengembalian(List<Item> items) {
-        long totalHilang = hitungJenis(items, JenisLaporan.HILANG);
-        if (totalHilang == 0) {
-            return 0;
+    private RoundedPanel buatKartuGrafik(String judul, String keterangan, Map<String, Long> data, Color barColor) {
+        RoundedPanel card = new RoundedPanel(new BorderLayout(0, 10),
+                Theme.CARD_BACKGROUND, Theme.CARD_BORDER, Theme.CARD_RADIUS);
+        card.setBorder(BorderFactory.createEmptyBorder(18, 20, 16, 20));
+
+        JPanel headerPanel = new JPanel();
+        headerPanel.setOpaque(false);
+        headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));
+
+        JLabel lblJudul = new JLabel(judul);
+        lblJudul.setFont(Fonts.sans(14f, Font.BOLD));
+        lblJudul.setForeground(Theme.TEXT_PRIMARY);
+
+        JLabel lblKet = new JLabel(keterangan);
+        lblKet.setFont(Fonts.sans(11.5f, Font.PLAIN));
+        lblKet.setForeground(Theme.TEXT_MUTED);
+
+        headerPanel.add(lblJudul);
+        headerPanel.add(Box.createVerticalStrut(2));
+        headerPanel.add(lblKet);
+
+        BarChartPanel chartPanel = new BarChartPanel(data, barColor);
+        chartPanel.setPreferredSize(new Dimension(360, 185));
+
+        card.add(headerPanel, BorderLayout.NORTH);
+        card.add(chartPanel, BorderLayout.CENTER);
+        return card;
+    }
+
+    /**
+     * Komponen grafik batang kustom menggunakan Java Graphics2D (US-031).
+     * Otomatis menyesuaikan lebar/tinggi saat jendela diubah ukurannya dan menampilkan
+     * pesan kosong bila belum ada data.
+     */
+    private static class BarChartPanel extends JPanel {
+        private final Map<String, Long> data;
+        private final Color barColor;
+
+        BarChartPanel(Map<String, Long> data, Color barColor) {
+            this.data = data == null ? Map.of() : data;
+            this.barColor = barColor;
+            setOpaque(false);
         }
-        long kembali = items.stream()
-                .filter(item -> item.getStatus() == StatusItem.DIKEMBALIKAN
-                        || item.getStatus() == StatusItem.DISERAHKAN)
-                .count();
-        return (int) Math.min(100, Math.round(kembali * 100.0 / totalHilang));
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+            int w = getWidth();
+            int h = getHeight();
+
+            long maxVal = data.values().stream().mapToLong(Long::longValue).max().orElse(0L);
+            if (data.isEmpty() || maxVal == 0L) {
+                g2.setColor(Theme.TEXT_MUTED);
+                g2.setFont(Fonts.sans(12f, Font.ITALIC));
+                String emptyMsg = "Belum ada data laporan untuk ditampilkan";
+                FontMetrics fm = g2.getFontMetrics();
+                g2.drawString(emptyMsg, (w - fm.stringWidth(emptyMsg)) / 2, h / 2);
+                g2.dispose();
+                return;
+            }
+
+            int padLeft = 34;
+            int padRight = 14;
+            int padTop = 22;
+            int padBottom = 34;
+
+            int plotW = Math.max(40, w - padLeft - padRight);
+            int plotH = Math.max(40, h - padTop - padBottom);
+            int baseLineY = padTop + plotH;
+
+            // Garis bantu horizontal (grid)
+            g2.setColor(Theme.CARD_DIVIDER);
+            g2.drawLine(padLeft, baseLineY, padLeft + plotW, baseLineY);
+            g2.drawLine(padLeft, padTop + plotH / 2, padLeft + plotW, padTop + plotH / 2);
+
+            g2.setFont(Fonts.sans(10f, Font.PLAIN));
+            g2.setColor(Theme.TEXT_MUTED);
+            g2.drawString("0", 10, baseLineY + 3);
+            g2.drawString(String.valueOf(maxVal), 10, padTop + 4);
+
+            int count = data.size();
+            int slotW = plotW / count;
+            int barW = Math.max(16, Math.min(48, (int) (slotW * 0.52)));
+
+            int idx = 0;
+            for (Map.Entry<String, Long> entry : data.entrySet()) {
+                long val = entry.getValue();
+                int barH = (int) Math.round((val * 1.0 / maxVal) * (plotH - 6));
+                int centerX = padLeft + (idx * slotW) + (slotW / 2);
+                int barX = centerX - (barW / 2);
+                int barY = baseLineY - barH;
+
+                g2.setColor(barColor);
+                g2.fillRoundRect(barX, barY, barW, Math.max(2, barH), 8, 8);
+
+                // Nilai di atas batang
+                String valStr = String.valueOf(val);
+                g2.setFont(Fonts.sans(11f, Font.BOLD));
+                g2.setColor(Theme.TEXT_PRIMARY);
+                FontMetrics fmVal = g2.getFontMetrics();
+                g2.drawString(valStr, centerX - (fmVal.stringWidth(valStr) / 2), barY - 5);
+
+                // Label sumbu X
+                String label = entry.getKey();
+                g2.setFont(Fonts.sans(10.5f, Font.PLAIN));
+                g2.setColor(Theme.TEXT_SECONDARY);
+                FontMetrics fmLbl = g2.getFontMetrics();
+                int maxLabelW = Math.max(24, slotW - 6);
+                while (fmLbl.stringWidth(label) > maxLabelW && label.length() > 3) {
+                    label = label.substring(0, label.length() - 2) + ".";
+                }
+                g2.drawString(label, centerX - (fmLbl.stringWidth(label) / 2), baseLineY + 17);
+
+                idx++;
+            }
+
+            g2.dispose();
+        }
     }
 
     private Object[][] dataStatus(List<Item> items) {
@@ -203,7 +358,7 @@ public class AdminPage extends ResponsivePage {
         Map<StatusKlaim, Integer> jumlah = new EnumMap<>(StatusKlaim.class);
         for (StatusKlaim status : StatusKlaim.values()) {
             if ("MENUNGGU_VERIFIKASI".equals(status.name())) {
-                continue; // status lama yang sudah dimigrasikan
+                continue;
             }
             jumlah.put(status, 0);
         }
@@ -238,14 +393,14 @@ public class AdminPage extends ResponsivePage {
     private RoundedPanel statCard(String judul, String nilai, String keterangan) {
         RoundedPanel card = new RoundedPanel(new BorderLayout(0, 4),
                 Theme.CARD_BACKGROUND, Theme.CARD_BORDER, Theme.CARD_RADIUS);
-        card.setBorder(BorderFactory.createEmptyBorder(16, 18, 16, 18));
+        card.setBorder(BorderFactory.createEmptyBorder(16, 16, 16, 16));
 
-        JLabel lblJudul = new JLabel(judul.toUpperCase());
+        JLabel lblJudul = new JLabel(judul.toUpperCase(Locale.ROOT));
         lblJudul.setFont(Fonts.sans(10.5f, Font.BOLD));
         lblJudul.setForeground(Theme.TEXT_MUTED);
 
         JLabel lblNilai = new JLabel(nilai);
-        lblNilai.setFont(Fonts.sans(30f, Font.BOLD));
+        lblNilai.setFont(Fonts.sans(26f, Font.BOLD));
         lblNilai.setForeground(Theme.TEXT_PRIMARY);
 
         JLabel lblKet = new JLabel(keterangan);
@@ -380,7 +535,7 @@ public class AdminPage extends ResponsivePage {
         lblJudul.setFont(Fonts.sans(14.5f, Font.BOLD));
         lblJudul.setForeground(Theme.TEXT_PRIMARY);
 
-        JLabel lblKet = new JLabel("Petugas pos keamanan/satpam mendapatkan akses khusus langsung dari Administrator");
+        JLabel lblKet = new JLabel("Tambah petugas baru, ubah role, atau aktifkan/nonaktifkan akun pengguna (US-030)");
         lblKet.setFont(Fonts.sans(11.5f, Font.PLAIN));
         lblKet.setForeground(Theme.TEXT_MUTED);
 
@@ -388,11 +543,20 @@ public class AdminPage extends ResponsivePage {
         headerPanel.add(Box.createVerticalStrut(2));
         headerPanel.add(lblKet);
 
+        JPanel actionGroup = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        actionGroup.setOpaque(false);
+
+        JButton btnUbahRole = buatTombolSekunder("Ubah Role");
+        btnUbahRole.addActionListener(e -> aksiUbahRolePengguna());
+
+        JButton btnToggleAktif = buatTombolSekunder("Aktifkan / Nonaktifkan");
+        btnToggleAktif.addActionListener(e -> aksiToggleAktifPengguna());
+
         JButton btnTambahPetugas = new JButton("+ Beri Akses Petugas") {
             @Override
-            protected void paintComponent(java.awt.Graphics g) {
-                java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
-                g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(getModel().isRollover() ? new Color(0x43, 0x38, 0xCA) : new Color(0x4F, 0x46, 0xE5));
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
                 g2.dispose();
@@ -409,8 +573,12 @@ public class AdminPage extends ResponsivePage {
         btnTambahPetugas.setBorder(BorderFactory.createEmptyBorder(8, 14, 8, 14));
         btnTambahPetugas.addActionListener(e -> bukaDialogTambahPetugas());
 
+        actionGroup.add(btnUbahRole);
+        actionGroup.add(btnToggleAktif);
+        actionGroup.add(btnTambahPetugas);
+
         topRow.add(headerPanel, BorderLayout.CENTER);
-        topRow.add(btnTambahPetugas, BorderLayout.EAST);
+        topRow.add(actionGroup, BorderLayout.EAST);
 
         String[] kolom = {"Identitas (NIM/NIP)", "Nama", "Email", "Role", "Status"};
         userTableModel = new DefaultTableModel(dataPengguna(), kolom) {
@@ -420,23 +588,24 @@ public class AdminPage extends ResponsivePage {
             }
         };
 
-        JTable tabel = new JTable(userTableModel);
-        tabel.setFont(Fonts.sans(12f, Font.PLAIN));
-        tabel.setRowHeight(34);
-        tabel.setForeground(Theme.TEXT_PRIMARY);
-        tabel.setBackground(Theme.INPUT_BACKGROUND);
-        tabel.setGridColor(Theme.CARD_DIVIDER);
-        tabel.setSelectionBackground(new Color(0xEE, 0xF2, 0xFF));
-        tabel.setSelectionForeground(new Color(0x1E, 0x1B, 0x4B));
-        tabel.setShowVerticalLines(false);
-        tabel.setFillsViewportHeight(true);
+        tabelPengguna = new JTable(userTableModel);
+        tabelPengguna.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        tabelPengguna.setFont(Fonts.sans(12f, Font.PLAIN));
+        tabelPengguna.setRowHeight(34);
+        tabelPengguna.setForeground(Theme.TEXT_PRIMARY);
+        tabelPengguna.setBackground(Theme.INPUT_BACKGROUND);
+        tabelPengguna.setGridColor(Theme.CARD_DIVIDER);
+        tabelPengguna.setSelectionBackground(new Color(0xEE, 0xF2, 0xFF));
+        tabelPengguna.setSelectionForeground(new Color(0x1E, 0x1B, 0x4B));
+        tabelPengguna.setShowVerticalLines(false);
+        tabelPengguna.setFillsViewportHeight(true);
 
-        JTableHeader th = tabel.getTableHeader();
+        JTableHeader th = tabelPengguna.getTableHeader();
         th.setFont(Fonts.sans(11.5f, Font.BOLD));
         th.setForeground(Theme.TEXT_SECONDARY);
         th.setBackground(Theme.CARD_BACKGROUND);
 
-        JScrollPane scroll = new JScrollPane(tabel);
+        JScrollPane scroll = new JScrollPane(tabelPengguna);
         scroll.setPreferredSize(new Dimension(100, Math.max(90, Math.min(220, 42 + (userTableModel.getRowCount() * 26)))));
         scroll.setBorder(BorderFactory.createEmptyBorder());
         scroll.getViewport().setBackground(Theme.INPUT_BACKGROUND);
@@ -444,6 +613,100 @@ public class AdminPage extends ResponsivePage {
         card.add(topRow, BorderLayout.NORTH);
         card.add(scroll, BorderLayout.CENTER);
         return card;
+    }
+
+    private JButton buatTombolSekunder(String teks) {
+        JButton btn = new JButton(teks);
+        btn.setFont(Fonts.sans(11.5f, Font.BOLD));
+        btn.setForeground(Theme.TEXT_PRIMARY);
+        btn.setBackground(Theme.INPUT_BACKGROUND);
+        btn.setFocusPainted(false);
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btn.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Theme.CARD_BORDER, 1),
+                BorderFactory.createEmptyBorder(7, 12, 7, 12)
+        ));
+        return btn;
+    }
+
+    private void refreshTabelPengguna() {
+        userTableModel.setDataVector(dataPengguna(), new String[]{"Identitas (NIM/NIP)", "Nama", "Email", "Role", "Status"});
+    }
+
+    private void aksiToggleAktifPengguna() {
+        int row = tabelPengguna.getSelectedRow();
+        if (row < 0) {
+            JOptionPane.showMessageDialog(this, "Pilih salah satu pengguna pada tabel terlebih dahulu.",
+                    "Pilih Pengguna", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        String id = String.valueOf(userTableModel.getValueAt(row, 0));
+        String nama = String.valueOf(userTableModel.getValueAt(row, 1));
+        String statusSaatIni = String.valueOf(userTableModel.getValueAt(row, 4));
+        boolean targetAktif = !"Aktif".equalsIgnoreCase(statusSaatIni);
+        String aksiLabel = targetAktif ? "mengaktifkan" : "menonaktifkan";
+
+        int konfirmasi = JOptionPane.showConfirmDialog(this,
+                "Yakin ingin " + aksiLabel + " akun " + nama + " (" + id + ")?",
+                "Konfirmasi Status Akun",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE);
+        if (konfirmasi != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        try {
+            if (controller != null && controller.getAuthService() != null) {
+                controller.getAuthService().ubahStatusAktifUser(id, targetAktif);
+            }
+            refreshTabelPengguna();
+            JOptionPane.showMessageDialog(this,
+                    "Status akun " + nama + " berhasil diperbarui menjadi " + (targetAktif ? "Aktif" : "Nonaktif") + ".",
+                    "Berhasil",
+                    JOptionPane.INFORMATION_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(),
+                    "Gagal Mengubah Status Akun", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void aksiUbahRolePengguna() {
+        int row = tabelPengguna.getSelectedRow();
+        if (row < 0) {
+            JOptionPane.showMessageDialog(this, "Pilih salah satu pengguna pada tabel terlebih dahulu.",
+                    "Pilih Pengguna", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        String id = String.valueOf(userTableModel.getValueAt(row, 0));
+        String nama = String.valueOf(userTableModel.getValueAt(row, 1));
+
+        Role[] pilihan = Role.values();
+        Role roleDipilih = (Role) JOptionPane.showInputDialog(
+                this,
+                "Pilih role baru untuk " + nama + " (" + id + "):",
+                "Ubah Role Pengguna",
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                pilihan,
+                pilihan[0]
+        );
+        if (roleDipilih == null) {
+            return;
+        }
+
+        try {
+            if (controller != null && controller.getAuthService() != null) {
+                controller.getAuthService().ubahRoleUser(id, roleDipilih);
+            }
+            refreshTabelPengguna();
+            JOptionPane.showMessageDialog(this,
+                    "Role " + nama + " berhasil diubah menjadi " + roleDipilih.getLabel() + ".",
+                    "Role Diperbarui",
+                    JOptionPane.INFORMATION_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(),
+                    "Gagal Mengubah Role", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private Object[][] dataPengguna() {
@@ -492,7 +755,6 @@ public class AdminPage extends ResponsivePage {
 
         content.add(Box.createVerticalStrut(16));
 
-        // Form fields
         JLabel lblNama = new JLabel("Nama Lengkap Petugas");
         lblNama.setFont(Fonts.sans(11.5f, Font.BOLD));
         lblNama.setForeground(new Color(0x33, 0x41, 0x55));
@@ -549,7 +811,6 @@ public class AdminPage extends ResponsivePage {
 
         content.add(Box.createVerticalStrut(18));
 
-        // Buttons
         JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         btnRow.setOpaque(false);
         btnRow.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -575,7 +836,7 @@ public class AdminPage extends ResponsivePage {
                 if (controller != null && controller.getAuthService() != null) {
                     controller.getAuthService().tambahPetugasOlehAdmin(nama, nip, email, pass);
                 }
-                userTableModel.setDataVector(dataPengguna(), new String[]{"Identitas (NIM/NIP)", "Nama", "Email", "Role", "Status"});
+                refreshTabelPengguna();
                 dialog.dispose();
                 JOptionPane.showMessageDialog(this,
                         "Akun Petugas " + nama + " (NIP: " + nip + ") berhasil dibuat.\nPetugas sekarang dapat masuk ke sistem.",
