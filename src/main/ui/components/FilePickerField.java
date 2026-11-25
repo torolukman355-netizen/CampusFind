@@ -26,6 +26,8 @@ public class FilePickerField extends JPanel {
 
     private File selectedFile;
     private boolean hasError = false;
+    private boolean dashedDropzone = false;
+    private String customPrompt = null;
     private final JLabel contentLabel;
     private final JLabel removeButton;
     private Runnable onFileChanged;
@@ -75,6 +77,23 @@ public class FilePickerField extends JPanel {
         updateDisplay();
     }
 
+    public void setDashedDropzone(boolean dashedDropzone, String customPrompt) {
+        this.dashedDropzone = dashedDropzone;
+        this.customPrompt = customPrompt;
+        if (dashedDropzone) {
+            setPreferredSize(new Dimension(getPreferredSize().width, 76));
+            setMaximumSize(new Dimension(Integer.MAX_VALUE, 76));
+            contentLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+            contentLabel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 12, 0, 12));
+        } else {
+            setPreferredSize(new Dimension(getPreferredSize().width, Theme.INPUT_HEIGHT));
+            setMaximumSize(new Dimension(Integer.MAX_VALUE, Theme.INPUT_HEIGHT));
+            contentLabel.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+            contentLabel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 12, 0, 0));
+        }
+        updateDisplay();
+    }
+
     public void setOnFileChanged(Runnable onFileChanged) {
         this.onFileChanged = onFileChanged;
     }
@@ -104,7 +123,12 @@ public class FilePickerField extends JPanel {
     private void updateDisplay() {
         if (selectedFile == null) {
             contentLabel.setIcon(new CloudUploadIcon(16, Theme.TEXT_SECONDARY));
-            contentLabel.setText("<html><span style='font-size: 13px; color: #2A2420;'>Pilih berkas struk, foto Find My, atau kotak dus </span><span style='font-size: 9px; font-weight: bold; color: #8A7F73;'>(MAKS 10MB)</span></html>");
+            if (dashedDropzone) {
+                String prompt = (customPrompt != null && !customPrompt.isBlank()) ? customPrompt : "Pilih berkas...";
+                contentLabel.setText("<html><span style='font-size: 13px; color: #475569;'>" + prompt + "</span></html>");
+            } else {
+                contentLabel.setText("<html><span style='font-size: 13px; color: #0F172A;'>Pilih berkas struk, foto Find My, atau kotak dus </span><span style='font-size: 9px; font-weight: bold; color: #64748B;'>(MAKS 10MB)</span></html>");
+            }
             removeButton.setVisible(false);
         } else {
             contentLabel.setIcon(null);
@@ -117,7 +141,7 @@ public class FilePickerField extends JPanel {
             } else {
                 sizeStr = String.format("%.1f MB", bytes / (1024.0 * 1024.0));
             }
-            contentLabel.setText("<html><b>" + selectedFile.getName() + "</b> <span style='color: #6E655C;'>(" + sizeStr + ")</span></html>");
+            contentLabel.setText("<html><b style='color:#0F172A;'>" + selectedFile.getName() + "</b> <span style='color: #64748B;'>(" + sizeStr + ")</span></html>");
             removeButton.setVisible(true);
         }
         repaint();
@@ -155,6 +179,11 @@ public class FilePickerField extends JPanel {
             g2.setColor(Theme.ERROR_COLOR);
             g2.setStroke(new BasicStroke(1.5f));
             g2.drawRoundRect(1, 1, getWidth() - 2, getHeight() - 2, Theme.INPUT_RADIUS, Theme.INPUT_RADIUS);
+        } else if (dashedDropzone) {
+            g2.setColor(Theme.INPUT_BORDER);
+            g2.setStroke(new BasicStroke(1.2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER,
+                    10.0f, new float[]{6.0f, 4.0f}, 0.0f));
+            g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, Theme.INPUT_RADIUS, Theme.INPUT_RADIUS);
         } else {
             g2.setColor(Theme.INPUT_BORDER);
             g2.setStroke(new BasicStroke(1.0f));
