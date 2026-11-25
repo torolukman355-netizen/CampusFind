@@ -239,8 +239,8 @@ public class LoginPage extends JPanel {
         };
         loginCard.setLayout(new BoxLayout(loginCard, BoxLayout.Y_AXIS));
         loginCard.setOpaque(false);
-        loginCard.setPreferredSize(new Dimension(440, 520));
-        loginCard.setMaximumSize(new Dimension(460, 560));
+        loginCard.setPreferredSize(new Dimension(440, 390));
+        loginCard.setMaximumSize(new Dimension(460, 430));
         loginCard.setBorder(new EmptyBorder(36, 36, 32, 36));
 
         // Title & Subtitle
@@ -377,56 +377,6 @@ public class LoginPage extends JPanel {
         regPromptRow.add(belumPunyaLbl);
         regPromptRow.add(bukaDaftarBtn);
         loginCard.add(regPromptRow);
-
-        loginCard.add(Box.createVerticalStrut(20));
-
-        // Role Section Header
-        JLabel roleGuide = new JLabel("SETELAH MASUK, MENU MENGIKUTI ROLE");
-        roleGuide.setFont(Fonts.trackedSans(11f, Font.BOLD, 0.08));
-        roleGuide.setForeground(TEXT_MUTED);
-        roleGuide.setAlignmentX(Component.LEFT_ALIGNMENT);
-        loginCard.add(roleGuide);
-
-        loginCard.add(Box.createVerticalStrut(12));
-
-        // 3 Quick Role Buttons (1 row, 3 columns)
-        JPanel roleGrid = new JPanel(new GridLayout(1, 3, 10, 0));
-        roleGrid.setOpaque(false);
-        roleGrid.setMaximumSize(new Dimension(Integer.MAX_VALUE, 64));
-        roleGrid.setPreferredSize(new Dimension(368, 64));
-        roleGrid.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        // Mahasiswa Button
-        roleGrid.add(createRoleButton("Mahasiswa",
-                new MortarboardIcon(20, new Color(0x43, 0x38, 0xCA)),
-                new Color(0xEE, 0xF2, 0xFF),
-                new Color(0xE0, 0xE7, 0xFF),
-                new Color(0xC7, 0xD2, 0xFE),
-                new Color(0x43, 0x38, 0xCA),
-                () -> loginAsRole(Role.MAHASISWA, "budi@student.kampus.ac", "Budi Santoso", "123456789")
-        ));
-
-        // Petugas Button
-        roleGrid.add(createRoleButton("Petugas",
-                new OfficerBadgeIcon(20, new Color(0xB4, 0x53, 0x09)),
-                new Color(0xFE, 0xF3, 0xC7),
-                new Color(0xFD, 0xE6, 0x8A),
-                new Color(0xFD, 0xE6, 0x8A),
-                new Color(0xB4, 0x53, 0x09),
-                () -> loginAsRole(Role.PETUGAS, "rina@kampus.ac", "Rina Wulandari", "198501012010122001")
-        ));
-
-        // Admin Button
-        roleGrid.add(createRoleButton("Admin",
-                new AdminShieldIcon(20, new Color(0x04, 0x78, 0x57)),
-                new Color(0xEC, 0xFD, 0xF5),
-                new Color(0xD1, 0xFA, 0xE5),
-                new Color(0xA7, 0xF3, 0xD0),
-                new Color(0x04, 0x78, 0x57),
-                () -> loginAsRole(Role.ADMIN, "hendra@kampus.ac", "Hendra Admin", "admin")
-        ));
-
-        loginCard.add(roleGrid);
 
         // Register Card setup
         JPanel registerCard = createRegisterCard();
@@ -825,37 +775,6 @@ public class LoginPage extends JPanel {
         }
     }
 
-    private void loginAsRole(Role role, String email, String nama, String id) {
-        emailField.setText(email);
-        emailField.setError(false);
-        errorLabel.setVisible(false);
-        passwordField.setText("••••••••••••");
-
-        try {
-            authService.login(id, nama, role);
-            controller.updateNotificationCount();
-            controller.setNavBarVisible(true);
-
-            // Execute pending action if any, otherwise route to role dashboard
-            Runnable pending = controller.consumePendingLoginAction();
-            if (pending != null) {
-                pending.run();
-            } else if (role == Role.ADMIN) {
-                controller.navigateToAdmin();
-            } else if (role == Role.PETUGAS) {
-                controller.navigateToPetugas();
-            } else {
-                controller.navigateToTemuan();
-            }
-        } catch (Exception ex) {
-            emailField.setError(true);
-            errorLabel.setText(" " + ex.getMessage());
-            errorLabel.setVisible(true);
-            revalidate();
-            repaint();
-        }
-    }
-
     private JPanel createFeatureCard(Icon icon, String title, String subtitle) {
         JPanel card = new JPanel(new BorderLayout(12, 0)) {
             @Override
@@ -902,52 +821,6 @@ public class LoginPage extends JPanel {
 
         card.add(textCol, BorderLayout.CENTER);
         return card;
-    }
-
-    private JButton createRoleButton(String roleName, Icon icon, Color bg, Color hoverBg, Color border, Color textColor, Runnable onClick) {
-        JButton btn = new JButton() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-                int w = getWidth();
-                int h = getHeight();
-                int r = 10;
-
-                g2.setColor(getModel().isRollover() || getModel().isPressed() ? hoverBg : bg);
-                g2.fill(new RoundRectangle2D.Float(0, 0, w - 1, h - 1, r, r));
-
-                g2.setColor(border);
-                g2.setStroke(new BasicStroke(1.2f));
-                g2.draw(new RoundRectangle2D.Float(0, 0, w - 1, h - 1, r, r));
-
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        btn.setLayout(new BoxLayout(btn, BoxLayout.Y_AXIS));
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setContentAreaFilled(false);
-        btn.setOpaque(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new EmptyBorder(10, 8, 8, 8));
-
-        JLabel icLbl = new JLabel(icon);
-        icLbl.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        JLabel txtLbl = new JLabel(roleName);
-        txtLbl.setFont(Fonts.sans(12.5f, Font.BOLD));
-        txtLbl.setForeground(textColor);
-        txtLbl.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        btn.add(icLbl);
-        btn.add(Box.createVerticalStrut(5));
-        btn.add(txtLbl);
-
-        btn.addActionListener(e -> onClick.run());
-        return btn;
     }
 
     // -----------------------------------------------------------------
